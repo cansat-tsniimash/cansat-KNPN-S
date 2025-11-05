@@ -26,7 +26,7 @@
 
 // INCLUDE ДАТЧИКОВ
 
-#include "bmp280/bmp.h" // датчик BMP280 (I2C)
+#include "bmp280/bmp.h" // датчик bme280 (I2C)
 #include "lis3mdl\lis3mdl.h" // датчик lis3mdl (I2C)
 #include "lsm6ds3\lsm6ds3.h" // датчик lsm6ds3 (I2C)
 
@@ -37,7 +37,6 @@
 
 #include "e220400t22s/e220_400t22s.h" // радио (UART)
 
-#include "cd4051/cd4051.h" // мультиплексор
 #include "dwt_delay.h" // тайминги
 
 // ОБРАБОТЧИКИ
@@ -73,10 +72,10 @@ typedef struct{
 	uint16_t number_packet;
 	uint16_t team_id;
 	uint32_t time;
-	int16_t temp_bmp280;
-	uint32_t altitude_bmp280;
-	uint32_t pressure_bmp280;
-	int16_t humidity_bmp280;
+	int16_t temp_bme280;
+	uint32_t altitude_bme280;
+	uint32_t pressure_bme280;
+	int16_t humidity_bme280;
 	int16_t acceleration_x;
 	int16_t acceleration_y;
 	int16_t acceleration_z;
@@ -97,6 +96,18 @@ typedef struct{
 } packet_t;
 #pragma pack(pop) // Компилятор может добавлять выравнивающие байты для оптимизации работы процессора
 
+bme280_dev_t bme_init(){
+	bme280_dev_t bme;
+	bme.delay_us = bmp_delay;
+	bme.settings.filter = BME280_FILTER_COEFF_2;
+	bme.settings.osr_h = BME280_OVERSAMPLING_16X;
+	bme.settings.osr_p = BME280_OVERSAMPLING_16X;
+	bme.settings.osr_t = BME280_OVERSAMPLING_16X;
+	bme.settings.standby_time = BME280_STANDBY_TIME_500_MS;
+	bmp_init(&bme, &hi2c1);
+	return bme;
+}
+
 void appmain(){
 
 	packet_t packet = {0};
@@ -107,19 +118,10 @@ void appmain(){
 	int16_t temp_gyro[3] = {0}; // temp = ВРЕМЕННО!
 	int16_t temp_accel[3] = {0};
 
-	// BMP280
-	bme280_dev_t bmp;
-	bmp.delay_us = bmp_delay;
-	bmp.settings.filter = BME280_FILTER_COEFF_2;
-	bmp.settings.osr_h = BME280_OVERSAMPLING_16X;
-	bmp.settings.osr_p = BME280_OVERSAMPLING_16X;
-	bmp.settings.osr_t = BME280_OVERSAMPLING_16X;
-	bmp.settings.standby_time = BME280_STANDBY_TIME_500_MS;
+	// bme280
 	struct bme280_data data;
-	bmp_init(&bmp, &hi2c1);
+	bme280_dev_t bme = bme_init();
 
-	bme280_get_sensor_data(BME280_ALL, &data, &bmp); // вывод давления и температуры
-	float pressure_zero  = data.pressure;
 
 	// LSM6DS3
 	stmdev_ctx_t lsm;
@@ -142,7 +144,7 @@ void appmain(){
     uint8_t bin_path[] = "grib.bin\0";
     //uint8_t csv_path[] = "grib.csv\0";
     //char str_buffer[300] = {0};
-    //char str_header[330] = "number_packet; time; temp_bmp280; pressure_bmp280; acceleration x; acceleration y; acceleration z; angular x; angular y; angular z; checksum_org; state; photoresistor; lis3mdl_x; lis3mdl_y; lis3mdl_z; ds18b20; ne06mv2_height; ne06mv2_latitude; ne06mv2_longitude; ne06mv2_height; ne06mv2_fix; scd41; mq_4; me2o2; checksum_grib;\n";
+    //char str_header[330] = "number_packet; time; temp_bme280; pressure_bme280; acceleration x; acceleration y; acceleration z; angular x; angular y; angular z; checksum_org; state; photoresistor; lis3mdl_x; lis3mdl_y; lis3mdl_z; ds18b20; ne06mv2_height; ne06mv2_latitude; ne06mv2_longitude; ne06mv2_height; ne06mv2_fix; scd41; mq_4; me2o2; checksum_grib;\n";
     /*int mount_attemps;
     for(mount_attemps = 0; mount_attemps < 5; mount_attemps++)
     {
@@ -177,17 +179,13 @@ void appmain(){
 
     float result;
 
-	volatile int time_last = HAL_GetTick();
-	volatile int dt = HAL_GetTick() - time_last;
 
 	while(1){
-		// BMP280
-		bme280_get_sensor_data(BME280_ALL, &data, &bmp); // вывод давления и температуры
-		packet.pressure_bmp280 = data.pressure;
-		packet.temp_bmp280 = data.temperature * 100;
-
-		dt = HAL_GetTick() - time_last;
-		time_last = HAL_GetTick();
+		// bme280
+		bme280_get_sensor_data(BME280_ALL, &data, &bme); // вывод давления и температуры
+		packet.pressure_bme280 = data.pressure;
+		packet.temp_bme280 = data.temperature * 100;
+		packet.humidity_bme280 = data.humidity * 100;
 
 		// LSM6DS3
 		my_data.gyro_error = lsm6ds3_angular_rate_raw_get(&lsm, temp_gyro);
@@ -205,7 +203,6 @@ void appmain(){
 		packet.lis3mdl_y = temp_magn[1];
 		packet.lis3mdl_z = temp_magn[2];
 
-		cd4051_change_ch(0);
 		megalux(&hadc1, &result);
 		packet.photoresistor = result * 1000;
 
@@ -215,7 +212,7 @@ void appmain(){
 	    if(my_data.lsm_err != 0){
 	    	packet.state |= 1 << 6;
 	    }
-	    if(bmp.intf_rslt != 0){
+	    if(bme.intf_rslt != 0){
 	    	packet.state |= 1 << 7;
 	    }
 
