@@ -39,6 +39,8 @@
 
 #include "e220400t22s/e220_400t22s.h" // радио (UART)
 
+#include "neo6mv2\neo6mv2.h" // датчик gps (UART)
+
 #include "dwt_delay.h" // тайминги
 
 // ОБРАБОТЧИКИ
@@ -90,10 +92,10 @@ typedef struct{
 	int16_t lis3mdl_y;
 	int16_t lis3mdl_z;
 	int16_t ds18b20;
-	float neo8mv2_latitude;
-	float neo8mv2_longitude;
-	float neo8mv2_height;
-	uint8_t neo8mv2_fix;
+	float neo6mv2_latitude;
+	float neo6mv2_longitude;
+	float neo6mv2_height;
+	uint8_t neo6mv2_fix;
 	uint8_t checksum_knpn;
 } packet_t;
 #pragma pack(pop) // Компилятор может добавлять выравнивающие байты для оптимизации работы процессора
@@ -112,6 +114,7 @@ bme280_dev_t bme_init(){
 
 void appmain(){
 
+	int i;
 	packet_t packet = {0};
 	packet.team_id = 0xD9;
 	packet.start = 0xAAAA;
@@ -157,6 +160,11 @@ void appmain(){
         }
     }*/
 
+    //neo6mv2
+    neo6mv2_Init();
+    __HAL_UART_ENABLE_IT(&huart1, UART_IT_RXNE);
+    __HAL_UART_ENABLE_IT(&huart1, UART_IT_ERR);
+
 	// e220-400t22s
 	e220_pins_t e220_bus;
 	e220_bus.m0_pinchik = GPIO_PIN_1;
@@ -180,7 +188,8 @@ void appmain(){
     e220_set_mode(e220_bus, E220_MODE_TM);
 
     float result;
-
+    volatile int time_last = HAL_GetTick();
+    volatile int dt = HAL_GetTick() - time_last;
 
 	while(1){
 		// bme280
@@ -244,5 +253,19 @@ void appmain(){
 			bin_res = f_write(&binFile, (uint8_t*)&packet, sizeof(packet_t), &testBytes);
 			f_sync(&binFile);
 		}
+		//neo6mv2
+	    for (i = 0; i < 50; i++)
+	    {
+	    	if (neo6mv2_work())
+	    		break;
+	    }
+		dt = HAL_GetTick() - time_last;
+		time_last = HAL_GetTick();
+		GPS_Data gps_data = neo6mv2_GetData();
+		packet.neo6mv2_latitude = gps_data.latitude;
+		packet.neo6mv2_longitude = gps_data.longitude;
+		packet.neo6mv2_height = gps_data.altitude;
+		packet.neo6mv2_fix = gps_data.fixQuality;
+
 	}
 }
