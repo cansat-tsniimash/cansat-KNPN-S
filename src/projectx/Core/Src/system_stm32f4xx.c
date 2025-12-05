@@ -194,7 +194,7 @@ void SystemInit(void)
   * @note   - The system frequency computed by this function is not the real 
   *           frequency in the chip. It is calculated based on the predefined 
   *           constant and the selected clock source:
-  *             
+  *
   *           - If SYSCLK source is HSI, SystemCoreClock will contain the HSI_VALUE(*)
   *                                              
   *           - If SYSCLK source is HSE, SystemCoreClock will contain the HSE_VALUE(**)
