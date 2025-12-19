@@ -91,7 +91,6 @@ typedef struct{
 	int16_t lis3mdl_x;
 	int16_t lis3mdl_y;
 	int16_t lis3mdl_z;
-	int16_t ds18b20;
 	float neo6mv2_latitude;
 	float neo6mv2_longitude;
 	float neo6mv2_height;
@@ -146,8 +145,8 @@ void appmain(){
     FRESULT mount_res = 255;
     FRESULT bin_res = 255;
     //FRESULT csv_res = 255;
-    uint8_t bin_path[] = "grib.bin\0";
-    //uint8_t csv_path[] = "grib.csv\0";
+    uint8_t bin_path[] = "knpn.bin\0";
+    //uint8_t csv_path[] = "knpn.csv\0";
     //char str_buffer[300] = {0};
     //char str_header[330] = "number_packet; time; temp_bme280; pressure_bme280; acceleration x; acceleration y; acceleration z; angular x; angular y; angular z; checksum_org; state; photoresistor; lis3mdl_x; lis3mdl_y; lis3mdl_z; ds18b20; ne06mv2_height; ne06mv2_latitude; ne06mv2_longitude; ne06mv2_height; ne06mv2_fix; scd41; mq_4; me2o2; checksum_grib;\n";
     /*int mount_attemps;
@@ -192,12 +191,15 @@ void appmain(){
     volatile int dt = HAL_GetTick() - time_last;
 
 	while(1){
+		dt = HAL_GetTick() - time_last;
+		time_last = HAL_GetTick();
 		// bme280
 		bme280_get_sensor_data(BME280_ALL, &data, &bme); // вывод давления и температуры
 		packet.pressure_bme280 = data.pressure;
 		packet.temp_bme280 = data.temperature * 100;
 		packet.humidity_bme280 = data.humidity * 100;
-
+		dt = HAL_GetTick() - time_last;
+		time_last = HAL_GetTick();
 		// LSM6DS3
 		my_data.gyro_error = lsm6ds3_angular_rate_raw_get(&lsm, temp_gyro);
 		packet.angular_x = temp_gyro[0];
@@ -208,12 +210,16 @@ void appmain(){
 		packet.acceleration_x = temp_accel[0];
 		packet.acceleration_y = temp_accel[1];
 		packet.acceleration_z = temp_accel[2];
+
+		dt = HAL_GetTick() - time_last;
+		time_last = HAL_GetTick();
 		// LIS3MDL
 		my_data.magn_error = lis3mdl_magnetic_raw_get(&lis, temp_magn);
 		packet.lis3mdl_x = temp_magn[0];
 		packet.lis3mdl_y = temp_magn[1];
 		packet.lis3mdl_z = temp_magn[2];
-
+		dt = HAL_GetTick() - time_last;
+		time_last = HAL_GetTick();
 		megalux(&hadc1, &result);
 		packet.photoresistor = result * 1000;
 
@@ -226,7 +232,8 @@ void appmain(){
 	    if(bme.intf_rslt != 0){
 	    	packet.state |= 1 << 7;
 	    }
-
+		dt = HAL_GetTick() - time_last;
+		time_last = HAL_GetTick();
 		packet.time = HAL_GetTick();
 		packet.number_packet++;
 		packet.checksum_knpn = xorBlock((uint8_t *)&packet, sizeof(packet_t) - 1);
@@ -266,6 +273,5 @@ void appmain(){
 		packet.neo6mv2_longitude = gps_data.longitude;
 		packet.neo6mv2_height = gps_data.altitude;
 		packet.neo6mv2_fix = gps_data.fixQuality;
-
 	}
 }
