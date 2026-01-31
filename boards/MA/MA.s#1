@@ -8203,10 +8203,6 @@ Source: www.kingbright.com</description>
 <pinref part="R6" gate="G$1" pin="1"/>
 <pinref part="R7" gate="G$1" pin="1"/>
 </segment>
-<segment>
-<pinref part="R7" gate="G$1" pin="2"/>
-<wire x1="-43.18" y1="50.8" x2="-43.18" y2="55.88" width="0.1524" layer="91"/>
-</segment>
 </net>
 <net name="FOT" class="0">
 <segment>
@@ -8250,12 +8246,6 @@ Source: www.kingbright.com</description>
 <pinref part="SD" gate="G$1" pin="CMD"/>
 <wire x1="-5.08" y1="35.56" x2="-5.08" y2="43.18" width="0.1524" layer="91"/>
 <label x="-5.08" y="40.64" size="1.778" layer="95" rot="R90"/>
-</segment>
-</net>
-<net name="N$1" class="0">
-<segment>
-<pinref part="U$1" gate="G$1" pin="PB10"/>
-<wire x1="113.03" y1="91.44" x2="124.46" y2="91.44" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="CK" class="0">
@@ -8313,18 +8303,6 @@ Source: www.kingbright.com</description>
 <label x="-17.78" y="40.64" size="1.778" layer="95" rot="R90"/>
 </segment>
 </net>
-<net name="N$7" class="0">
-<segment>
-<pinref part="U$1" gate="G$1" pin="PB2"/>
-<wire x1="113.03" y1="88.9" x2="124.46" y2="88.9" width="0.1524" layer="91"/>
-</segment>
-</net>
-<net name="N$8" class="0">
-<segment>
-<pinref part="U$1" gate="G$1" pin="PA4"/>
-<wire x1="113.03" y1="73.66" x2="124.46" y2="73.66" width="0.1524" layer="91"/>
-</segment>
-</net>
 <net name="M0" class="0">
 <segment>
 <pinref part="E220-400T22S" gate="G$1" pin="M0"/>
@@ -8371,10 +8349,40 @@ Source: www.kingbright.com</description>
 <wire x1="-38.1" y1="68.58" x2="-38.1" y2="66.04" width="0.1524" layer="91"/>
 </segment>
 </net>
-<net name="N$12" class="0">
+<net name="AUX" class="0">
 <segment>
 <pinref part="LED2" gate="G$1" pin="C"/>
 <wire x1="-38.1" y1="58.42" x2="-38.1" y2="50.8" width="0.1524" layer="91"/>
+<label x="-38.1" y="50.8" size="1.778" layer="95" rot="R90"/>
+</segment>
+<segment>
+<pinref part="U$1" gate="G$1" pin="PB2"/>
+<wire x1="113.03" y1="88.9" x2="124.46" y2="88.9" width="0.1524" layer="91"/>
+<label x="119.38" y="88.9" size="1.778" layer="95"/>
+</segment>
+</net>
+<net name="IRQ" class="0">
+<segment>
+<pinref part="NRF24" gate="G$1" pin="IRQ"/>
+<wire x1="142.24" y1="71.12" x2="132.08" y2="71.12" width="0.1524" layer="91"/>
+<label x="132.08" y="71.12" size="1.778" layer="95"/>
+</segment>
+<segment>
+<pinref part="U$1" gate="G$1" pin="PB10"/>
+<wire x1="113.03" y1="91.44" x2="124.46" y2="91.44" width="0.1524" layer="91"/>
+<label x="119.38" y="91.44" size="1.778" layer="95"/>
+</segment>
+</net>
+<net name="PRJ" class="0">
+<segment>
+<pinref part="R7" gate="G$1" pin="2"/>
+<wire x1="-43.18" y1="50.8" x2="-43.18" y2="55.88" width="0.1524" layer="91"/>
+<label x="-43.18" y="50.8" size="1.778" layer="95" rot="R90"/>
+</segment>
+<segment>
+<pinref part="U$1" gate="G$1" pin="PA4"/>
+<wire x1="113.03" y1="73.66" x2="124.46" y2="73.66" width="0.1524" layer="91"/>
+<label x="119.38" y="73.66" size="1.778" layer="95"/>
 </segment>
 </net>
 </nets>
