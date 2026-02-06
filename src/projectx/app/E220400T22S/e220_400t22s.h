@@ -119,6 +119,6 @@ void e220_set_reg0(e220_pins_t e220_bus, uint8_t air_rate, uint8_t parity, uint8
 void e220_set_reg1(e220_pins_t e220_bus, uint8_t packet_len, uint8_t rssi, uint8_t t_power);
 void e220_set_channel(e220_pins_t e220_bus, uint8_t ch);
 void e220_set_reg3(e220_pins_t e220_bus, uint8_t rssi_byte, uint8_t trans_m, uint8_t lbt_en, uint8_t wor_cycle);
-void e220_send_packet(e220_pins_t e220_bus, uint16_t addr, uint8_t *reg_data, uint16_t len, uint8_t target_channel);
+void e220_send_packet(e220_pins_t e220_bus, uint8_t *reg_data, uint16_t len);
 
 #endif /* E220400T22S_E220_400T22S_H_ */

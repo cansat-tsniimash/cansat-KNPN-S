@@ -11,9 +11,6 @@
 
 #define LIS3MDL_I2C_ADDRESS (0x1C << 1)
 
-typedef int32_t (*stmdev_read_ptr)(void *, uint8_t, uint8_t *, uint16_t);
-typedef int32_t (*stmdev_write_ptr)(void *, uint8_t, const uint8_t *, uint16_t);
-
 int32_t lis_read(void* handle, uint8_t reg_addr, uint8_t* data_ptr, uint16_t len){
 	HAL_StatusTypeDef res = HAL_I2C_Master_Transmit(handle, LIS3MDL_I2C_ADDRESS, &reg_addr, 1, 100);
     if (res != HAL_OK) {

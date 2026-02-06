@@ -19,9 +19,6 @@ static uint8_t lineReady = 0;
 static char nmeaLine[128];
 static cbuffer_t gps_buffer;
 
-extern float ne06mv2_height;
-extern float ne06mv2_longitude;
-extern float ne06mv2_latitude;
 
 void neo6mv2_Init(){
     gpsData.latitude = 0.0f;
