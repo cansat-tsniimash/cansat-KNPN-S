@@ -34,8 +34,9 @@
 
 #include "resistor\resistor.h" // фоторезистор (ADC)
 
-#include "fatfs_sd\fatfs_sd.h" // micro sd (SPI)
-#include "..\Middlewares\Third_Party\FatFs\src\ff.h" // micro sd (SPI)
+#include "fatfs.h"
+//#include "fatfs_sd\fatfs_sd.h" // micro sd (SPI)
+//#include "..\Middlewares\Third_Party\FatFs\src\ff.h" // micro sd (SPI)
 
 #include "e220400t22s/e220_400t22s.h" // радио (UART)
 
@@ -205,7 +206,7 @@ void appmain(){
 
 		// sd
 		if (mount_res != FR_OK){
-			f_mount(NULL, "", 0);
+			//f_mount(NULL, "", 0);
 			mount_res = f_mount(&fileSystem, "", 1);
 			bin_res = f_open(&binFile, (char*)bin_path, FA_WRITE | 0x30);
 		}
@@ -232,5 +233,12 @@ void appmain(){
 		packet.neo6mv2_longitude = gps_data.longitude;
 		packet.neo6mv2_height = gps_data.altitude;
 		packet.neo6mv2_fix = gps_data.fixQuality;
+
+		printf("%d Печень ", gps_data.cookie);
+		printf("%f Ширина ", packet.neo6mv2_latitude);
+		printf("%f Долгота ", packet.neo6mv2_longitude);
+		printf("%f М ", packet.neo6mv2_height);
+		printf("%i спутники", gps_data.satellites);
+		printf("%i\n", packet.neo6mv2_fix);
 	}
 }
