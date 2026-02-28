@@ -25,7 +25,7 @@ BME280_INTF_RET_TYPE bmp280_read_reg (uint8_t reg_addr, uint8_t *reg_data, uint3
 	if (hal_res != HAL_OK)
 		return hal_res;
 
-	hal_res = HAL_I2C_Master_Receive(ptr->hi2c1, ptr->ADDR, reg_data, len, 100);
+	hal_res = HAL_I2C_Master_Receive(ptr->hi2c1, ptr->ADDR, reg_data, len, 150);
 	if (hal_res != HAL_OK)
 		return hal_res;
 
