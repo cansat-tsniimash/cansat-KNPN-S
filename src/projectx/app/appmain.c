@@ -39,6 +39,9 @@
 //#include "..\Middlewares\Third_Party\FatFs\src\ff.h" // micro sd (SPI)
 
 #include "e220400t22s/e220_400t22s.h" // радио (UART)
+#include "nRF24L01_PL/nrf24_upper_api.h"
+#include "nRF24L01_PL/nrf24_lower_api_stm32.h"
+#include "nRF24L01_PL/nrf24_lower_api.h"
 
 #include "neo6mv2\neo6mv2.h" // датчик gps (UART)
 
@@ -49,6 +52,7 @@ extern ADC_HandleTypeDef hadc1;
 extern I2C_HandleTypeDef hi2c1;
 extern UART_HandleTypeDef huart2;
 extern UART_HandleTypeDef huart1;
+extern SPI_HandleTypeDef hspi1;
 
 // Вычисление контрольной суммы массива байтов
 uint8_t xorBlock(const uint8_t *data, size_t size) {
@@ -139,6 +143,52 @@ void appmain(){
     FRESULT bin_res = 255;
     uint8_t bin_path[] = "knpn.bin\0";
 
+
+    //NRF24
+    nrf24_lower_api_config_t nrf24;
+    nrf24_spi_pins_t pins;
+    pins.ce_pin = GPIO_PIN_12;
+    pins.ce_port = GPIOB;
+    pins.cs_pin = GPIO_PIN_13;
+    pins.cs_port = GPIOB;
+    nrf24_spi_init(&nrf24, &hspi1, &pins);
+
+    nrf24_mode_power_down(&nrf24);
+
+    nrf24_rf_config_t nrf24_conf;
+    nrf24_conf.data_rate = NRF24_DATARATE_250_KBIT;
+    nrf24_conf.tx_power = NRF24_TXPOWER_MINUS_18_DBM;
+    nrf24_conf.rf_channel = 3;
+    nrf24_setup_rf(&nrf24, &nrf24_conf);
+
+    nrf24_protocol_config_t nrf24_prot;
+    nrf24_prot.crc_size = NRF24_CRCSIZE_2BYTE;
+    nrf24_prot.address_width = NRF24_ADDRES_WIDTH_5_BYTES;
+    nrf24_prot.en_dyn_payload_size = false;
+    nrf24_prot.en_ack_payload = false;
+    nrf24_prot.en_dyn_ack = false;
+    nrf24_prot.auto_retransmit_delay = 01;
+    nrf24_prot.auto_retransmit_count = 1;
+    nrf24_setup_protocol(&nrf24, &nrf24_prot);
+
+    nrf24_pipe_config_t nrf24_pipe_st;
+    nrf24_pipe_st.address = 3;
+    nrf24_pipe_st.payload_size = 0;
+    nrf24_pipe_st.enable_auto_ack = false;
+    nrf24_pipe_rx_start (&nrf24, 1 , &nrf24_pipe_st);
+
+    nrf24_fifo_status_t status_rx;
+    nrf24_fifo_status_t status_tx;
+
+
+
+    nrf24_mode_standby(&nrf24);
+
+    nrf24_mode_rx(&nrf24);
+
+    uint8_t bufdoc[3][32]={0};
+
+
     //neo6mv2
     neo6mv2_Init();
     __HAL_UART_ENABLE_IT(&huart1, UART_IT_RXNE);
@@ -157,8 +207,12 @@ void appmain(){
 
     e220_set_addr(e220_bus, 0xFFFF);
     HAL_Delay(100);
-    e220_set_reg0(e220_bus, E220_REG0_AIR_RATE_9600, E220_REG0_PARITY_8N1_DEF, E220_REG0_PORT_RATE_9600);
+    e220_set_reg0(e220_bus, E220_REG0_AIR_RATE_19200, E220_REG0_PARITY_8N1_DEF, E220_REG0_PORT_RATE_115200);
     HAL_Delay(100);
+
+    huart2.Init.BaudRate = 115000;
+    HAL_UART_Init(&huart2);
+
     e220_set_reg1(e220_bus, E220_REG1_PACKET_LEN_200B, E220_REG1_RSSI_OFF, E220_REG1_TPOWER_22);
     HAL_Delay(100);
     e220_set_channel(e220_bus, 1);
@@ -169,6 +223,11 @@ void appmain(){
     float result;
 
 	while(1){
+
+		nrf24_read_rx_payload(&nrf24, bufdoc[0], 32);
+
+
+
 		// bme280
 		bme280_get_sensor_data(BME280_ALL, &data, &bme); // вывод давления и температуры
 		packet.pressure_bme280 = data.pressure;
