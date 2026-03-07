@@ -12,6 +12,9 @@
 #include "bmp280/bme280.h"
 #include "bmp280/bmp280.h"
 #include "delay/dwt_delay.h"
+#include "lsm6ds3/lsm6ds3.h"
+#include "lsm6ds3/lsm6ds3_reg.h"
+
 
 #define BMP280_ADDR (0x76 << 1)
 
@@ -170,24 +173,74 @@ void appmain()
 	bmp280_1.settings.filter = BME280_FILTER_COEFF_16;
 	bmp280_1.settings.standby_time = BME280_STANDBY_TIME_20_MS;
 
-	bmp280_bus_t bmp_bus;
-	bmp_bus.ADDR = 0x76 << 1;
-	bmp_bus.hi2c1 = &hi2c1;
-	bmp280_1.intf_ptr = &bmp_bus;
+	bmp280_bus_t bmp_bus1;
+	bmp_bus1.ADDR = 0x76 << 1;
+	bmp_bus1.hi2c1 = &hi2c1;
+	bmp280_1.intf_ptr = &bmp_bus1;
 
 	bme280_init(&bmp280_1);
 	bme280_set_sensor_settings(BME280_ALL_SETTINGS_SEL, &bmp280_1);
 	bme280_set_sensor_mode(BME280_NORMAL_MODE, &bmp280_1);
 
-	struct bme280_data bmp_data;
+	struct bme280_data bmp_data1;
+
+
+	struct bme280_dev bmp280_2;
+	bmp280_2.intf = BME280_I2C_INTF;
+	bmp280_2.read = bmp280_read_reg;
+	bmp280_2.write = bmp280_write_reg;
+	bmp280_2.delay_us = bmp280_delay_us;
+
+
+	bmp280_2.settings.osr_p = BME280_OVERSAMPLING_16X;
+	bmp280_2.settings.osr_h = BME280_OVERSAMPLING_16X;
+	bmp280_2.settings.osr_t = BME280_OVERSAMPLING_16X;
+	bmp280_2.settings.filter = BME280_FILTER_COEFF_16;
+	bmp280_2.settings.standby_time = BME280_STANDBY_TIME_20_MS;
+
+	bmp280_bus_t bmp_bus2;
+	bmp_bus2.ADDR = 0x77 << 1;
+	bmp_bus2.hi2c1 = &hi2c1;
+	bmp280_2.intf_ptr = &bmp_bus2;
+
+	bme280_init(&bmp280_2);
+	bme280_set_sensor_settings(BME280_ALL_SETTINGS_SEL, &bmp280_2);
+	bme280_set_sensor_mode(BME280_NORMAL_MODE, &bmp280_2);
+
+	struct bme280_data bmp_data2;
+
+	lsm_data_t lsm_bus;
+	lsm_bus.ADDR = 0xD4;
+	lsm_bus.hi2c = &hi2c1;
+
+	stmdev_ctx_t lsm_cxt;
+	lsm_cxt.handle = &lsm_bus;
+	lsm_cxt.read_reg = lsm_read_reg;
+	lsm_cxt.write_reg = lsm_write_reg;
+
+	lsm6ds3_reset_set(&lsm_cxt, 1);
+
+
+	lsm6ds3_xl_full_scale_set(&lsm_cxt, LSM6DS3_16g);
+	lsm6ds3_xl_data_rate_set(&lsm_cxt, LSM6DS3_XL_ODR_104Hz);
+
+	lsm6ds3_gy_full_scale_set(&lsm_cxt, LSM6DS3_2000dps);
+	lsm6ds3_gy_data_rate_set(&lsm_cxt, LSM6DS3_GY_ODR_208Hz);
+
+	int16_t bf_lsm_gy[3]= {0};
+	int16_t bf_lsm_xl[3]= {0};
+
 
 
 
 	while(1)
 	{
 
-		bme280_get_sensor_data(BME280_ALL, &bmp_data, &bmp280_1);
+		bme280_get_sensor_data(BME280_ALL, &bmp_data1, &bmp280_1);
+		bme280_get_sensor_data(BME280_ALL, &bmp_data2, &bmp280_2);
 
+		lsm6ds3_acceleration_raw_get(&lsm_cxt, bf_lsm_xl);
+		lsm6ds3_angular_rate_raw_get(&lsm_cxt, bf_lsm_gy);
 
 		switch(nrf_state)
 		{
@@ -247,13 +300,19 @@ void appmain()
 		packet2.neo6mv2_height = gps_data.altitude;
 		packet2.neo6mv2_fix = gps_data.fixQuality;
 
-		printf("%d Печень ", gps_data.cookie);
-		printf("%f Ширина ", packet2.neo6mv2_latitude);
-		printf("%f Долгота ", packet2.neo6mv2_longitude);
-		printf("%f М ", packet2.neo6mv2_height);
-		printf("%i спутники", gps_data.satellites);
-		printf("%i\n", packet2.neo6mv2_fix);
+		printf(" Пакетик: %d\n ", gps_data.cookie);
+		printf(" Ширина: %f\n", packet2.neo6mv2_latitude);
+		printf(" Долгота: %f\n", packet2.neo6mv2_longitude);
+		printf(" Высота: %f\n ", packet2.neo6mv2_height);
+		printf(" спутники: %i\n", gps_data.satellites);
+		printf(" Фиксик: %i\n", packet2.neo6mv2_fix);
 
+		//printf("Температура BMP1: %lf\n ", bmp_data1.temperature);
+		//printf("Температура BMP2: %lf\n ", bmp_data2.temperature);
+		//printf("Влаго BMP1: %lf\n ", bmp_data.humidity );
+		//HAL_Delay(100);
+		//printf("Температура BMP2:  %f\n ", bmp_data2.pressure);
+		//printf("%f %f %f %f\n", bmp_data1.temperature, bmp_data1.pressure, bmp_data2.temperature, bmp_data2.pressure);
 
 	}
 
