@@ -14,6 +14,9 @@
 #include "delay/dwt_delay.h"
 #include "lsm6ds3/lsm6ds3.h"
 #include "lsm6ds3/lsm6ds3_reg.h"
+#include "lis3mdl/lis3mdl.h"
+#include "lis3mdl/lis3mdl_reg.h"
+#include "../Middlewares/Third_Party/FatFs/src/ff.h"
 
 
 #define BMP280_ADDR (0x76 << 1)
@@ -231,6 +234,42 @@ void appmain()
 	int16_t bf_lsm_xl[3]= {0};
 
 
+	int16_t temp_magn[3] = {0};
+
+
+	lis3mdl_data_t lis_bus;
+	lis_bus.addr =  0b0011100 << 1;
+	lis_bus.hi2c1 = &hi2c1;
+
+
+	stmdev_ctx_t lis;
+	lis.handle = &lis_bus;
+	lis.read_reg = lis3mdl_read;
+	lis.write_reg = lis3mdl_write;
+	lis3mdl_reset_set(&lis, 1);
+	lis3mdl_operating_mode_set(&lis, LIS3MDL_CONTINUOUS_MODE);
+	lis3mdl_data_rate_set(&lis, LIS3MDL_UHP_80Hz);
+	lis3mdl_full_scale_set(&lis, LIS3MDL_16_GAUSS);
+
+
+	FATFS fleska;
+	FIL paket1_file;
+	char paket1_path[] = "paket1.bin";
+	FRESULT rizult_mount = f_mount(&fleska, "", 1);
+	FRESULT rizult_paket1 = 255;
+	UINT byte_count;
+
+
+	if (rizult_mount == FR_OK)
+	{
+		f_open(&paket1_file, &paket1_path , FA_WRITE);
+	}
+	if (rizult_paket1 == FR_OK)
+	{
+		f_write(&paket1_file, buff, btw, &byte_count);
+	}
+
+
 
 
 	while(1)
@@ -241,6 +280,11 @@ void appmain()
 
 		lsm6ds3_acceleration_raw_get(&lsm_cxt, bf_lsm_xl);
 		lsm6ds3_angular_rate_raw_get(&lsm_cxt, bf_lsm_gy);
+
+		lis3mdl_magnetic_raw_get(&lis, temp_magn);
+
+
+
 
 		switch(nrf_state)
 		{

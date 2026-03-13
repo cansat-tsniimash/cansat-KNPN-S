@@ -10,12 +10,6 @@
 #include "I2C_crutch/i2c-crutch.h"
 
 
-extern I2C_HandleTypeDef hi2c1;
-
-#define BMP280_ADDR (0x76 << 1)
-
-
-
 BME280_INTF_RET_TYPE bmp280_read_reg (uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *intf_ptr)
 {
 	bmp280_bus_t *ptr = (bmp280_bus_t *)intf_ptr;
@@ -31,7 +25,7 @@ BME280_INTF_RET_TYPE bmp280_read_reg (uint8_t reg_addr, uint8_t *reg_data, uint3
 		return hal_res;
 	}
 
-	hal_res = HAL_I2C_Master_Receive(ptr->hi2c1, ptr->ADDR, reg_data, len, 100 + len * 10);
+	hal_res = HAL_I2C_Master_Receive(ptr->hi2c1, ptr->ADDR, reg_data, len, 100 + len * 20);
 	if (hal_res != HAL_OK)
 
 		return hal_res;

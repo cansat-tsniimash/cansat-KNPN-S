@@ -22,6 +22,7 @@
 #include "stm32f1xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "neo6mv2/neo6mv2.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/

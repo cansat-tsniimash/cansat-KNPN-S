@@ -16,8 +16,8 @@
 
 #include "lis3mdl_reg.h"
 
-int32_t lis_read(void* handle, uint8_t reg_addr, uint8_t* data_ptr, uint16_t len);
-int32_t lsm_write(void* handle, uint8_t reg_addr, const uint8_t *data_ptr, uint16_t len);
-uint8_t lis_init(stmdev_ctx_t* lis_dev, I2C_HandleTypeDef* i2c_handle);
+int32_t lis3mdl_read(void* handle, uint8_t reg_addr, uint8_t* data_ptr, uint16_t len);
+int32_t lsm3mdl_write(void* handle, uint8_t reg_addr, const uint8_t *data_ptr, uint16_t len);
+uint8_t lis3mdl_init(stmdev_ctx_t* lis_dev, I2C_HandleTypeDef* i2c_handle);
 
 #endif /* LI3MDL_LIS3MDL_H_ */
