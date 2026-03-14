@@ -17,6 +17,7 @@
 #include "lis3mdl/lis3mdl.h"
 #include "lis3mdl/lis3mdl_reg.h"
 #include "../Middlewares/Third_Party/FatFs/src/ff.h"
+#include "ff_gen_drv.h"
 
 
 #define BMP280_ADDR (0x76 << 1)
@@ -24,6 +25,7 @@
 extern I2C_HandleTypeDef hi2c1;
 extern SPI_HandleTypeDef hspi1;
 extern UART_HandleTypeDef huart1;
+extern SPI_HandleTypeDef hspi2;
 
 #pragma pack(push, 1)
 typedef struct
@@ -253,35 +255,72 @@ void appmain()
 
 
 	FATFS fleska;
-	FIL paket1_file;
-	char paket1_path[] = "paket1.bin";
-	FRESULT rizult_mount = f_mount(&fleska, "", 1);
-	FRESULT rizult_paket1 = 255;
+	FIL paсket1_file;
+	char paсket1_path[] = "paket1.bin";
+	FRESULT result_mount = f_mount(&fleska, "", 1);
+	FRESULT result_packet1 = 255;
 	UINT byte_count;
 
 
-	if (rizult_mount == FR_OK)
-	{
-		f_open(&paket1_file, &paket1_path , FA_WRITE);
-	}
-	if (rizult_paket1 == FR_OK)
-	{
-		f_write(&paket1_file, buff, btw, &byte_count);
-	}
 
 
 
 
 	while(1)
 	{
+		HAL_GetTick();
 
 		bme280_get_sensor_data(BME280_ALL, &bmp_data1, &bmp280_1);
+		packet3.press1BMP280 = bmp_data1.pressure;
+		packet3.temp1_bmp280 = bmp_data1.temperature;
+		packet3.hum1_bmp280 = bmp_data1.humidity;
 		bme280_get_sensor_data(BME280_ALL, &bmp_data2, &bmp280_2);
-
+		packet3.hum2_bmp280 = bmp_data2.humidity;
+		packet3.press2BMP280 = bmp_data2.pressure;
+		packet3.temp2_bmp280 = bmp_data2.temperature;
 		lsm6ds3_acceleration_raw_get(&lsm_cxt, bf_lsm_xl);
+		packet1.acceleration_x = bf_lsm_xl[0];
+		packet1.acceleration_y = bf_lsm_xl[1];
+		packet1.acceleration_z = bf_lsm_xl[2];
 		lsm6ds3_angular_rate_raw_get(&lsm_cxt, bf_lsm_gy);
-
+		packet1.angular_x = bf_lsm_gy[0];
+		packet1.angular_y = bf_lsm_gy[1];
+		packet1.angular_z = bf_lsm_gy[2];
 		lis3mdl_magnetic_raw_get(&lis, temp_magn);
+		packet1.lis3mdl_x = temp_magn[0];
+		packet1.lis3mdl_y = temp_magn[1];
+		packet1.lis3mdl_z = temp_magn[2];
+
+
+
+		packet1.number_packet += 1;
+
+
+		if (result_mount != FR_OK)
+		{
+			f_mount(NULL, "", 1);
+			extern Disk_drvTypeDef disk;
+			disk.is_initialized[0] = 0;
+			result_mount = f_mount(&fleska, "", 1);
+		}
+
+		if (result_mount == FR_OK && result_packet1 != FR_OK)
+		{
+			if (result_packet1 != 255)
+				f_close(&paсket1_file);
+			result_packet1 = f_open(&paсket1_file, (const TCHAR*)&paсket1_path , FA_WRITE | FA_OPEN_ALWAYS | FA__WRITTEN);
+			if(result_packet1 != FR_OK)
+			{
+				f_mount(NULL, "", 1);
+				result_mount = f_mount(&fleska, "", 1);
+			}
+
+		}
+		if (result_packet1 == FR_OK && result_mount == FR_OK)
+		{
+			result_packet1 = f_write(&paсket1_file, &packet1, sizeof(packet_1_t), &byte_count);
+			result_packet1 = f_sync(&paсket1_file);
+		}
 
 
 
