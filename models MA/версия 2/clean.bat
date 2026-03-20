@@ -1,0 +1,1 @@
+py.exe clean_old_versions.py
