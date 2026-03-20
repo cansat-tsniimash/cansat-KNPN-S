@@ -54,45 +54,92 @@ extern UART_HandleTypeDef huart2;
 extern UART_HandleTypeDef huart1;
 extern SPI_HandleTypeDef hspi1;
 
-// Вычисление контрольной суммы массива байтов
-uint8_t xorBlock(const uint8_t *data, size_t size) {
-	uint8_t result = 0x00;
-
-	for (size_t i = 0; i < size; i++) {
-		result ^= data[i];
-	}
-
-	return result;
-}
 
 // структура для хранения и передачи телеметрии
 #pragma pack(push, 1) // Обращение к компилятору не выравнивать структуру и хранить её в памяти без пустых байтов
 typedef struct{
-	uint16_t start;
+	uint8_t start;
 	uint16_t number_packet;
 	uint16_t team_id;
 	uint32_t time;
-	int16_t temp_bme280;
-	uint32_t altitude_bme280;
-	uint32_t pressure_bme280;
-	int16_t humidity_bme280;
-	int16_t acceleration_x;
-	int16_t acceleration_y;
-	int16_t acceleration_z;
 	int16_t angular_x;
 	int16_t angular_y;
 	int16_t angular_z;
-	uint8_t state;
-	uint16_t photoresistor;
+	int16_t acceleration_x;
+	int16_t acceleration_y;
+	int16_t acceleration_z;
 	int16_t lis3mdl_x;
 	int16_t lis3mdl_y;
 	int16_t lis3mdl_z;
+	uint32_t pressure_bme280;
+	int16_t temp_bme280;
+	int16_t humidity_bme280;
+	uint16_t altitude_bme280;
 	float neo6mv2_latitude;
 	float neo6mv2_longitude;
 	float neo6mv2_height;
 	uint8_t neo6mv2_fix;
-	uint8_t checksum_knpn;
+	uint16_t photoresistor;
+	uint8_t state;
+	uint16_t checksum_knpn;
 } packet_t;
+
+typedef struct
+{
+
+	uint8_t start;
+	uint16_t number_packet;
+	uint32_t time;
+	int16_t angular_x;
+	int16_t angular_y;
+	int16_t angular_z;
+	int16_t acceleration_x;
+	int16_t acceleration_y;
+	int16_t acceleration_z;
+	int16_t lis3mdl_x;
+	int16_t lis3mdl_y;
+	int16_t lis3mdl_z;
+	uint8_t state;
+	uint16_t checksum_knpn;
+	uint8_t reserv[4];
+
+}packet_1_t;
+typedef struct
+{
+	uint8_t start;
+	uint16_t number_packet;
+	uint32_t time;
+	float neo6mv2_latitude;
+	float neo6mv2_longitude;
+	float neo6mv2_height;
+	uint8_t neo6mv2_fix;
+	uint16_t photoresistor;
+	uint16_t checksum_knpn;
+	uint8_t reserv[8];
+
+
+
+
+}packet_2_t;
+
+
+
+typedef struct
+{
+	uint8_t start;
+	uint16_t number_packet;
+	uint32_t time;
+	float press1BMP280;
+	float press2BMP280;
+	uint16_t temp1_bmp280;
+	uint16_t hum1_bmp280;
+	uint16_t alt;
+	uint8_t speed;
+	uint16_t checksum_knpn;
+	uint8_t reserv[8];
+
+
+}packet_3_t;
 #pragma pack(pop) // Компилятор может добавлять выравнивающие байты для оптимизации работы процессора
 
 bme280_dev_t bme_init(){
@@ -107,6 +154,17 @@ bme280_dev_t bme_init(){
 	return bme;
 }
 
+
+uint16_t checksum_knpn(uint8_t *buf, uint16_t len){
+	uint16_t checksum = 0xFFFF;
+	while (len--){
+		checksum ^= *buf++ << 8;
+		for (uint8_t i = 0; i < 8; i++)
+			checksum = checksum & 0x8000 ?(checksum << 1) ^ 0x1021 : checksum << 1;
+	}
+	return checksum;
+}
+
 void appmain(){
 
 	int i;
@@ -114,7 +172,7 @@ void appmain(){
 	// Создал пакет
 	packet_t packet = {0};
 	packet.team_id = 0xD9; // тим айди
-	packet.start = 0xAAAA; // Флаг пакета
+	packet.start = 0xAA; // Флаг пакета
 	packet.number_packet = 0; // Номер пакета
 
 	// bme280
@@ -207,17 +265,18 @@ void appmain(){
 
     e220_set_addr(e220_bus, 0xFFFF);
     HAL_Delay(100);
-    e220_set_reg0(e220_bus, E220_REG0_AIR_RATE_19200, E220_REG0_PARITY_8N1_DEF, E220_REG0_PORT_RATE_115200);
+    e220_set_reg1(e220_bus, E220_REG1_PACKET_LEN_200B, E220_REG1_RSSI_OFF, E220_REG1_TPOWER_22);
     HAL_Delay(100);
+    e220_set_channel(e220_bus, 43);
+    HAL_Delay(100);
+    e220_set_reg3(e220_bus, E220_REG3_RSSI_BYTE_OFF, E220_REG3_TRANS_M_TRANSPARENT, E220_REG3_LBT_EN_OFF, E220_REG3_WOR_CYCLE_500);
+    HAL_Delay(100);
+    e220_set_reg0(e220_bus, E220_REG0_AIR_RATE_19200, E220_REG0_PARITY_8N1_DEF, E220_REG0_PORT_RATE_115200);
+
 
     huart2.Init.BaudRate = 115000;
     HAL_UART_Init(&huart2);
 
-    e220_set_reg1(e220_bus, E220_REG1_PACKET_LEN_200B, E220_REG1_RSSI_OFF, E220_REG1_TPOWER_22);
-    HAL_Delay(100);
-    e220_set_channel(e220_bus, 1);
-    HAL_Delay(100);
-    e220_set_reg3(e220_bus, E220_REG3_RSSI_BYTE_OFF, E220_REG3_TRANS_M_TRANSPARENT, E220_REG3_LBT_EN_OFF, E220_REG3_WOR_CYCLE_500);
     e220_set_mode(e220_bus, E220_MODE_TM);
 
     float result;
@@ -258,11 +317,52 @@ void appmain(){
 // Запаковка телеметрии
 		packet.time = HAL_GetTick();
 		packet.number_packet++;
-		packet.checksum_knpn = xorBlock((uint8_t *)&packet, sizeof(packet_t) - 1);
+		packet.checksum_knpn = checksum_knpn((uint8_t *)&packet, sizeof(packet_t) - 2);
 
 		// e220-400t22s
 	    e220_send_packet(e220_bus, (uint8_t *)&packet, sizeof(packet_t));
 
+	    packet_1_t packet_1 = {};
+	    packet_1.start = 0xBB;
+	    packet_1.number_packet = 1;
+	    packet_1.time = 2;
+	    packet_1.angular_x = 3;
+	    packet_1.angular_y = 4;
+	    packet_1.angular_z = 5;
+	    packet_1.acceleration_x = 6;
+	    packet_1.acceleration_y = 7;
+	    packet_1.acceleration_z = 8;
+	    packet_1.lis3mdl_x = 9;
+	    packet_1.lis3mdl_y = 10;
+	    packet_1.lis3mdl_z = 11;
+	    packet_1.state = 12;
+	    packet_1.checksum_knpn = checksum_knpn((uint8_t *)&packet_1, sizeof(packet_1_t) - 2 - 4);
+	    e220_send_packet(e220_bus, (uint8_t *)&packet_1, sizeof(packet_1_t));
+
+		packet_2_t packet_2 = {};
+		packet_2.start = 0xCC;
+		packet_2.number_packet = 1;
+		packet_2.time = 2;
+		packet_2.neo6mv2_latitude = 3;
+		packet_2.neo6mv2_longitude = 4;
+		packet_2.neo6mv2_height = 5;
+		packet_2.neo6mv2_fix = 6;
+		packet_2.photoresistor = 7;
+		packet_2.checksum_knpn = checksum_knpn((uint8_t *)&packet_2, sizeof(packet_2_t) - 2 - 8);
+		e220_send_packet(e220_bus, (uint8_t *)&packet_2, sizeof(packet_2_t));
+
+		packet_3_t packet_3 = {};
+		packet_3.start = 0xDD;
+		packet_3.number_packet = 1;
+		packet_3.time = 2;
+		packet_3.press1BMP280 = 3;
+		packet_3.press2BMP280 = 4;
+		packet_3.temp1_bmp280 = 5;
+		packet_3.hum1_bmp280 = 6;
+		packet_3.alt = 7;
+		packet_3.speed = 8;
+		packet_3.checksum_knpn = checksum_knpn((uint8_t *)&packet_3, sizeof(packet_3_t) - 2 - 8);
+		e220_send_packet(e220_bus, (uint8_t *)&packet_3, sizeof(packet_3_t));
 		// sd
 		if (mount_res != FR_OK){
 			//f_mount(NULL, "", 0);
