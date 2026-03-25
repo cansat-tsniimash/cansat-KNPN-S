@@ -105,12 +105,12 @@ DA_f3.flush()
 # настройка радио
 operating_mode(3)
 addr_datarate = 0x02
-data_rate = 0x4B00
+data_rate = 0xE5
 addr_channel = 0x04
-channel = 0x28
+channel = 0x2B
 time.sleep(1)
 command(addr_datarate, 0x01, data_rate)
-time.sleep(1)
+time.sleep(5)
 command(addr_channel, 0x01, channel)
 time.sleep(1)
 read_register = ser.read(120)
@@ -252,37 +252,38 @@ while True:
 						print("==== Пакет тип ДА 1 ====")
 						unpack_data = struct.unpack("<BHI9hBH", buf[:28])
 						if addr_udp is not None:
-							udp_socket.sendto(buf[:53], addr_udp)
+							udp_socket.sendto(buf[:28], addr_udp)
 						print ("flug", unpack_data[0])
 						print ("Number", unpack_data[1])
 						print ("Time_ms", unpack_data[2])	
 
-						print ("Gyroscope x", unpack_data[4]*70/1000)
-						print ("Gyroscope y", unpack_data[5]*70/1000)
-						print ("Gyroscope z", unpack_data[6]*70/1000)
-						print ("Accelerometer x", unpack_data[7]*488/1000/1000)
-						print ("Accelerometer y", unpack_data[8]*488/1000/1000)
-						print ("Accelerometer z", unpack_data[9]*488/1000/1000)
-						print ("Magnetometer x", unpack_data[10]/1711)
-						print ("Magnetometer y", unpack_data[11]/1711)
-						print ("Magnetometer z", unpack_data[12]/1711)
-					#   print ("Gyroscope x", unpack_data[4])
-					#   print ("Gyroscope y", unpack_data[5])
-					#   print ("Gyroscope z", unpack_data[6])
-					#   print ("Accelerometer x", unpack_data[7])
-					#   print ("Accelerometer y", unpack_data[8])
-					#   print ("Accelerometer z", unpack_data[9])
-					#   print ("Magnetometer x", unpack_data[10])
-					#   print ("Magnetometer y", unpack_data[11])
-					#   print ("Magnetometer z", unpack_data[12])
+						#print ("Gyroscope x", unpack_data[3]*70/1000)
+						#print ("Gyroscope y", unpack_data[4]*70/1000)
+						#print ("Gyroscope z", unpack_data[5]*70/1000)
+						#print ("Accelerometer x", unpack_data[6]*488/1000/1000)
+						#print ("Accelerometer y", unpack_data[7]*488/1000/1000)
+						#print ("Accelerometer z", unpack_data[8]*488/1000/1000)
+						#print ("Magnetometer x", unpack_data[9]/1711)
+						#print ("Magnetometer y", unpack_data[10]/1711)
+						#print ("Magnetometer z", unpack_data[11]/1711)
+						print ("Gyroscope x", unpack_data[3])
+						print ("Gyroscope y", unpack_data[4])
+						print ("Gyroscope z", unpack_data[5])
+						print ("Accelerometer x", unpack_data[6])
+						print ("Accelerometer y", unpack_data[7])
+						print ("Accelerometer z", unpack_data[8])
+						print ("Magnetometer x", unpack_data[9])
+						print ("Magnetometer y", unpack_data[10])
+						print ("Magnetometer z", unpack_data[11])
 
-						print ("Status", unpack_data[13])
-						print ("crc", unpack_data[14])
+						print ("Status", unpack_data[12])
+						print ("crc", unpack_data[13])
+						print ("\n")
 
 						f.write(buf[:28])
 						f.flush()
 
-						for i in range(1,14):
+						for i in range(1,13):
 							DA_f1.write(str(unpack_data[i]))
 							DA_f1.write(";")
 						DA_f1.write('\n')
@@ -310,17 +311,18 @@ while True:
 						print ("Number", unpack_data[1])
 						print ("Time_ms", unpack_data[2])
 
-						print ("GPS_lat", unpack_data[4])
-						print ("GPS_lon", unpack_data[5])
-						print ("GPS_height", unpack_data[6])
-						print ("GPS_fix", unpack_data[7])
+						print ("GPS_lat", unpack_data[3])
+						print ("GPS_lon", unpack_data[4])
+						print ("GPS_height", unpack_data[5])
+						print ("GPS_fix", unpack_data[6])
 						
-						print ("Photo", unpack_data[8])
-						print ("crc", unpack_data[9])
+						print ("Photo", unpack_data[7])
+						print ("crc", unpack_data[8])
+						print ("\n")
 
 						f.write(buf[:24])
 						f.flush()
-						for i in range(1,9):
+						for i in range(1,8):
 							DA_f2.write(str(unpack_data[i]))
 							DA_f2.write(";")
 						DA_f2.write('\n')
@@ -339,7 +341,7 @@ while True:
 					crc = struct.unpack("H", buf[22:24])
 					if crc_cond == crc[0]:
 						print("==== Пакет тип ДА 3 ====")
-						unpack_data = struct.unpack("<BH3I3HBH", buf[:24])
+						unpack_data = struct.unpack("<BHI2f3HBH", buf[:24])
 						if addr_udp is not None:
 							udp_socket.sendto(buf[:24], addr_udp)
 						print ("flug", unpack_data[0])
@@ -354,6 +356,7 @@ while True:
 
 						print ("Pito_speed", unpack_data[8])
 						print ("crc", unpack_data[9])
+						print ("\n")
 
 						f.write(buf[:24])
 						f.flush()

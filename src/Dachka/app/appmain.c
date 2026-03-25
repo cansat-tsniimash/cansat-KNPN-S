@@ -44,7 +44,7 @@ typedef struct
 	int16_t lis3mdl_y;
 	int16_t lis3mdl_z;
 	uint8_t state;
-	uint8_t checksum_knpn;
+	uint16_t checksum_knpn;
 	uint8_t reserv[4];
 
 }packet_1_t;
@@ -58,7 +58,7 @@ typedef struct
 	float neo6mv2_height;
 	uint8_t neo6mv2_fix;
 	uint16_t photoresistor;
-	uint8_t checksum_knpn;
+	uint16_t checksum_knpn;
 	uint8_t reserv[8];
 
 
@@ -80,6 +80,7 @@ typedef struct
 	uint16_t temp2_bmp280;
 	uint16_t hum2_bmp280;
 	uint8_t speed;
+	uint16_t checksum_knpn;
 	uint8_t reserv[7];
 
 
@@ -152,13 +153,13 @@ void appmain()
 	nrf24_mode_tx(&nrf24);
 
 	packet_1_t packet1 = {0};
-	packet1.start = 0xAAAA; // Флаг пакета
+	packet1.start = 0xBB; // Флаг пакета
 
 	packet_2_t packet2 = {0};
-	packet2.start = 0xAAAB;
+	packet2.start = 0xCC;
 
 	packet_3_t packet3 = {0};
-	packet3.start = 0xAAAC;
+	packet3.start = 0xDD;
 
 
 
@@ -253,22 +254,27 @@ void appmain()
 	lis3mdl_data_rate_set(&lis, LIS3MDL_UHP_80Hz);
 	lis3mdl_full_scale_set(&lis, LIS3MDL_16_GAUSS);
 
+	uint32_t time_pac = 0;
 
 	FATFS fleska;
 	FIL paсket1_file;
+	FIL paсket2_file;
+	FIL paсket3_file;
+	char paсket3_path[] = "paket3.bin";
+	char paсket2_path[] = "paket2.bin";
 	char paсket1_path[] = "paket1.bin";
 	FRESULT result_mount = f_mount(&fleska, "", 1);
 	FRESULT result_packet1 = 255;
+	FRESULT result_packet2 = 255;
+	FRESULT result_packet3 = 255;
 	UINT byte_count;
-
-
-
-
-
 
 	while(1)
 	{
-		HAL_GetTick();
+		//time_pac = HAL_GetTick();
+		//time_pac = packet1.time;
+		//time_pac = packet2.time;
+		//time_pac = packet3.time;
 
 		bme280_get_sensor_data(BME280_ALL, &bmp_data1, &bmp280_1);
 		packet3.press1BMP280 = bmp_data1.pressure;
@@ -294,6 +300,8 @@ void appmain()
 
 
 		packet1.number_packet += 1;
+		packet2.number_packet += 1;
+		packet3.number_packet += 1;
 
 
 		if (result_mount != FR_OK)
@@ -321,6 +329,44 @@ void appmain()
 			result_packet1 = f_write(&paсket1_file, &packet1, sizeof(packet_1_t), &byte_count);
 			result_packet1 = f_sync(&paсket1_file);
 		}
+		if (result_mount == FR_OK && result_packet2 != FR_OK)
+		{
+			if (result_packet2 != 255)
+				f_close(&paсket2_file);
+			result_packet2 = f_open(&paсket2_file, (const TCHAR*)&paсket2_path , FA_WRITE | FA_OPEN_ALWAYS | FA__WRITTEN);
+			if(result_packet2 != FR_OK)
+			{
+				f_mount(NULL, "", 1);
+				result_mount = f_mount(&fleska, "", 1);
+			}
+
+		}
+		if (result_packet2 == FR_OK && result_mount == FR_OK)
+		{
+			result_packet2 = f_write(&paсket2_file, &packet2, sizeof(packet_2_t), &byte_count);
+			result_packet2 = f_sync(&paсket2_file);
+		}
+		if (result_mount == FR_OK && result_packet3 != FR_OK)
+		{
+			if (result_packet3 != 255)
+				f_close(&paсket3_file);
+			result_packet3 = f_open(&paсket3_file, (const TCHAR*)&paсket3_path , FA_WRITE | FA_OPEN_ALWAYS | FA__WRITTEN);
+			if(result_packet3 != FR_OK)
+			{
+				f_mount(NULL, "", 1);
+				result_mount = f_mount(&fleska, "", 1);
+			}
+
+		}
+		if (result_packet3 == FR_OK && result_mount == FR_OK)
+		{
+			result_packet3 = f_write(&paсket3_file, &packet3, sizeof(packet_3_t), &byte_count);
+			result_packet3 = f_sync(&paсket3_file);
+		}
+
+
+
+
 
 
 
@@ -383,12 +429,12 @@ void appmain()
 		packet2.neo6mv2_height = gps_data.altitude;
 		packet2.neo6mv2_fix = gps_data.fixQuality;
 
-		printf(" Пакетик: %d\n ", gps_data.cookie);
-		printf(" Ширина: %f\n", packet2.neo6mv2_latitude);
-		printf(" Долгота: %f\n", packet2.neo6mv2_longitude);
-		printf(" Высота: %f\n ", packet2.neo6mv2_height);
-		printf(" спутники: %i\n", gps_data.satellites);
-		printf(" Фиксик: %i\n", packet2.neo6mv2_fix);
+		//printf(" Пакетик: %d\n ", gps_data.cookie);
+		//printf(" Ширина: %f\n", packet2.neo6mv2_latitude);
+		//printf(" Долгота: %f\n", packet2.neo6mv2_longitude);
+		//printf(" Высота: %f\n ", packet2.neo6mv2_height);
+		//printf(" спутники: %i\n", gps_data.satellites);
+		//printf(" Фиксик: %i\n", packet2.neo6mv2_fix);
 
 		//printf("Температура BMP1: %lf\n ", bmp_data1.temperature);
 		//printf("Температура BMP2: %lf\n ", bmp_data2.temperature);
