@@ -73,7 +73,7 @@ void nrf24_read_rx_payload(void * intf_ptr, uint8_t * payload_buffer, size_t pay
     // Считываем размер данных
 	nrf24_get_rx_payload_size(intf_ptr, &payload_size);
 	// Если размер данных от 1 до 32, то читаем данные
-	if (payload_size > 0 || payload_size < 32)
+	if (payload_size > 0 && payload_size < 32)
 	{
 		// Если места на запись меньше, чем у нас есть данных, читем сколько, сколько есть места
 		if (payload_size > payload_buffer_size)

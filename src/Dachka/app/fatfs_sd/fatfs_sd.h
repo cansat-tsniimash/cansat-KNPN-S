@@ -37,5 +37,7 @@ DRESULT SD_disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
 
 #define SPI_TIMEOUT 100
 
+extern volatile uint16_t Timer1, Timer2;
+
 
 #endif
