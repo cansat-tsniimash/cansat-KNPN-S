@@ -215,17 +215,17 @@ void appmain(){
 
     nrf24_rf_config_t nrf24_conf;
     nrf24_conf.data_rate = NRF24_DATARATE_250_KBIT;
-    nrf24_conf.tx_power = NRF24_TXPOWER_MINUS_18_DBM;
-    nrf24_conf.rf_channel = 3;
+    nrf24_conf.tx_power = NRF24_TXPOWER_MINUS_0_DBM;
+    nrf24_conf.rf_channel = 0;
     nrf24_setup_rf(&nrf24, &nrf24_conf);
 
     nrf24_protocol_config_t nrf24_prot;
-    nrf24_prot.crc_size = NRF24_CRCSIZE_2BYTE;
+    nrf24_prot.crc_size = NRF24_CRCSIZE_DISABLE;
     nrf24_prot.address_width = NRF24_ADDRES_WIDTH_5_BYTES;
     nrf24_prot.en_dyn_payload_size = false;
     nrf24_prot.en_ack_payload = false;
     nrf24_prot.en_dyn_ack = false;
-    nrf24_prot.auto_retransmit_delay = 01;
+    nrf24_prot.auto_retransmit_delay = 1;
     nrf24_prot.auto_retransmit_count = 1;
     nrf24_setup_protocol(&nrf24, &nrf24_prot);
 
@@ -237,7 +237,6 @@ void appmain(){
 
     nrf24_fifo_status_t status_rx;
     nrf24_fifo_status_t status_tx;
-
 
 
     nrf24_mode_standby(&nrf24);
@@ -322,47 +321,7 @@ void appmain(){
 		// e220-400t22s
 	    e220_send_packet(e220_bus, (uint8_t *)&packet, sizeof(packet_t));
 
-	    packet_1_t packet_1 = {};
-	    packet_1.start = 0xBB;
-	    packet_1.number_packet = 1;
-	    packet_1.time = 2;
-	    packet_1.angular_x = 3;
-	    packet_1.angular_y = 4;
-	    packet_1.angular_z = 5;
-	    packet_1.acceleration_x = 6;
-	    packet_1.acceleration_y = 7;
-	    packet_1.acceleration_z = 8;
-	    packet_1.lis3mdl_x = 9;
-	    packet_1.lis3mdl_y = 10;
-	    packet_1.lis3mdl_z = 11;
-	    packet_1.state = 12;
-	    packet_1.checksum_knpn = checksum_knpn((uint8_t *)&packet_1, sizeof(packet_1_t) - 2 - 4);
-	    e220_send_packet(e220_bus, (uint8_t *)&packet_1, sizeof(packet_1_t));
 
-		packet_2_t packet_2 = {};
-		packet_2.start = 0xCC;
-		packet_2.number_packet = 1;
-		packet_2.time = 2;
-		packet_2.neo6mv2_latitude = 3;
-		packet_2.neo6mv2_longitude = 4;
-		packet_2.neo6mv2_height = 5;
-		packet_2.neo6mv2_fix = 6;
-		packet_2.photoresistor = 7;
-		packet_2.checksum_knpn = checksum_knpn((uint8_t *)&packet_2, sizeof(packet_2_t) - 2 - 8);
-		e220_send_packet(e220_bus, (uint8_t *)&packet_2, sizeof(packet_2_t));
-
-		packet_3_t packet_3 = {};
-		packet_3.start = 0xDD;
-		packet_3.number_packet = 1;
-		packet_3.time = 2;
-		packet_3.press1BMP280 = 3;
-		packet_3.press2BMP280 = 4;
-		packet_3.temp1_bmp280 = 5;
-		packet_3.hum1_bmp280 = 6;
-		packet_3.alt = 7;
-		packet_3.speed = 8;
-		packet_3.checksum_knpn = checksum_knpn((uint8_t *)&packet_3, sizeof(packet_3_t) - 2 - 8);
-		e220_send_packet(e220_bus, (uint8_t *)&packet_3, sizeof(packet_3_t));
 		// sd
 		if (mount_res != FR_OK){
 			//f_mount(NULL, "", 0);

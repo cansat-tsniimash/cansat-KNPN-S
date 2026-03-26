@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "neo6mv2/neo6mv2.h"
+#include "fatfs_sd/fatfs_sd.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -188,7 +189,12 @@ void SysTick_Handler(void)
   /* USER CODE END SysTick_IRQn 0 */
   HAL_IncTick();
   /* USER CODE BEGIN SysTick_IRQn 1 */
-
+  if(Timer1 > 0){
+	  Timer1--;
+  }
+  if(Timer2 > 0){
+	  Timer2--;
+  }
   /* USER CODE END SysTick_IRQn 1 */
 }
 
