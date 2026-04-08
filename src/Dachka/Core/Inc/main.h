@@ -63,6 +63,10 @@ void Error_Handler(void);
 #define IRQ_GPIO_Port GPIOA
 #define CS_Pin GPIO_PIN_12
 #define CS_GPIO_Port GPIOB
+#define PRJ_Pin GPIO_PIN_8
+#define PRJ_GPIO_Port GPIOA
+#define PICK_Pin GPIO_PIN_9
+#define PICK_GPIO_Port GPIOA
 #define CE_Pin GPIO_PIN_15
 #define CE_GPIO_Port GPIOA
 

@@ -18,6 +18,7 @@
 #include "lis3mdl/lis3mdl_reg.h"
 #include "ff.h"
 #include "ff_gen_drv.h"
+#include "math.h"
 
 
 #define BMP280_ADDR (0x76 << 1)
@@ -26,12 +27,13 @@ extern I2C_HandleTypeDef hi2c1;
 extern SPI_HandleTypeDef hspi1;
 extern UART_HandleTypeDef huart1;
 extern SPI_HandleTypeDef hspi2;
+extern ADC_HandleTypeDef hadc1;
 
 #pragma pack(push, 1)
 typedef struct
 {
 
-	uint16_t start;
+	uint8_t start;
 	uint16_t number_packet;
 	uint32_t time;
 	int16_t angular_x;
@@ -45,12 +47,12 @@ typedef struct
 	int16_t lis3mdl_z;
 	uint8_t state;
 	uint16_t checksum_knpn;
-	uint8_t reserv[3];
+	uint8_t reserv[4];
 
 }packet_1_t;
 typedef struct
 {
-	uint16_t start;
+	uint8_t start;
 	uint16_t number_packet;
 	uint32_t time;
 	float neo6mv2_latitude;
@@ -59,7 +61,7 @@ typedef struct
 	uint8_t neo6mv2_fix;
 	uint16_t photoresistor;
 	uint16_t checksum_knpn;
-	uint8_t reserv[7];
+	uint8_t reserv[8];
 
 
 
@@ -70,18 +72,19 @@ typedef struct
 
 typedef struct
 {
-	uint16_t start;
+	uint8_t start;
 	uint16_t number_packet;
 	uint32_t time;
-	float press1BMP280;
-	uint16_t temp1_bmp280;
+	uint32_t press1BMP280;
+	uint32_t press2BMP280;
+	int16_t temp1_bmp280;
+	int16_t temp2_bmp280;
 	uint16_t hum1_bmp280;
-	float press2BMP280;
-	uint16_t temp2_bmp280;
 	uint16_t hum2_bmp280;
+	uint16_t alt;
 	uint8_t speed;
 	uint16_t checksum_knpn;
-	uint8_t reserv[5];
+	uint8_t reserv[4];
 
 
 }packet_3_t;
@@ -102,6 +105,14 @@ typedef enum
 	NRF_STATE_WAIT,
 } nrf_state_t;
 
+typedef enum
+{
+	BEFOR_UNDOCKING,
+	ACCELERATION,
+	FLIGHT,
+	DESCEND_SAS_MODE,
+	RETURN_TO_GROUND,
+} glider_state_t;
 
 void appmain()
 {
@@ -161,10 +172,15 @@ void appmain()
 	packet_3_t packet3 = {0};
 	packet3.start = 0xDD;
 
+	uint16_t first_foto;
 
+	HAL_ADC_Start(&hadc1);
+	HAL_ADC_GetValue(&hadc1);
+	first_foto = HAL_ADC_GetValue(&hadc1);
 
+	glider_state_t state = BEFOR_UNDOCKING;
 	nrf_state_t nrf_state = NRF_STATE_PACK1;
-	 int irq;
+	int irq;
 
 	struct bme280_dev bmp280_1;
 	bmp280_1.intf = BME280_I2C_INTF;
@@ -256,22 +272,37 @@ void appmain()
 
 	FATFS fleska;
 	FIL packet_file;
+	HAL_Delay(1);
 	char packet_path[] = "paket.bin";
 	FRESULT result_mount = f_mount(&fleska, "", 1);
 	FRESULT result_packet = 255;
 	UINT byte_count;
+
+	bme280_get_sensor_data(BME280_ALL, &bmp_data2, &bmp280_2);
+	float first_pres = bmp_data2.pressure;
+	uint32_t photores;
+
+	//uint8_t Speed = 0;
+
+	uint32_t timeOJ;
 
 	while(1)
 	{
 
 		bme280_get_sensor_data(BME280_ALL, &bmp_data1, &bmp280_1);
 		packet3.press1BMP280 = bmp_data1.pressure;
-		packet3.temp1_bmp280 = bmp_data1.temperature;
-		packet3.hum1_bmp280 = bmp_data1.humidity;
+		packet3.hum1_bmp280 = bmp_data1.humidity*10;
+		packet3.temp1_bmp280 = bmp_data1.temperature * 100;
 		bme280_get_sensor_data(BME280_ALL, &bmp_data2, &bmp280_2);
-		packet3.hum2_bmp280 = bmp_data2.humidity;
+		packet3.hum2_bmp280 = bmp_data2.humidity*10;
 		packet3.press2BMP280 = bmp_data2.pressure;
-		packet3.temp2_bmp280 = bmp_data2.temperature;
+		packet3.temp2_bmp280 = bmp_data2.temperature * 100;
+
+		float altitude = 44330.0 *(1 - pow((float)bmp_data2.pressure/first_pres, (1.0/5.255)));
+		packet3.alt = altitude;
+
+
+
 		lsm6ds3_acceleration_raw_get(&lsm_cxt, bf_lsm_xl);
 		packet1.acceleration_x = bf_lsm_xl[0];
 		packet1.acceleration_y = bf_lsm_xl[1];
@@ -285,13 +316,19 @@ void appmain()
 		packet1.lis3mdl_y = temp_magn[1];
 		packet1.lis3mdl_z = temp_magn[2];
 
+		//Speed = sqrt(2*(bmp_data2.pressure - bmp_data1.pressure)/ 1.246);
+		//packet3.speed = Speed;
+
 		GPS_Data gps_data = neo6mv2_GetData();
 		packet2.neo6mv2_latitude = gps_data.latitude;
 		packet2.neo6mv2_longitude = gps_data.longitude;
 		packet2.neo6mv2_height = gps_data.altitude;
 		packet2.neo6mv2_fix = gps_data.fixQuality;
 
-
+		HAL_ADC_Start(&hadc1);
+		HAL_ADC_GetValue(&hadc1);
+		photores = HAL_ADC_GetValue(&hadc1);
+		packet2.photoresistor = photores;
 		//printf(" Пакетик: %d\n ", gps_data.cookie);
 		//printf(" Ширина: %f\n", packet2.neo6mv2_latitude);
 		//printf(" Долгота: %f\n", packet2.neo6mv2_longitude);
@@ -316,6 +353,7 @@ void appmain()
 		packet1.time = time_pac;
 		packet2.time = time_pac;
 		packet3.time = time_pac;
+
 
 
 
@@ -347,7 +385,7 @@ void appmain()
 			result_packet = f_sync(&packet_file);
 		}
 
-		switch(nrf_state)
+/**		switch(nrf_state)
 		{
 		case NRF_STATE_PACK1:
 			nrf24_fifo_flush_rx(&nrf24);
@@ -407,10 +445,57 @@ void appmain()
 		case NRF_STATE_WAIT:
 			break;
 		}
-		HAL_Delay(10);
+		HAL_Delay(10);**/
+
+
 
 		nrf24_irq_get(&nrf24, &irq);
 		nrf24_irq_clear(&nrf24, 0x07);
+
+		switch(state)
+		{
+			case BEFOR_UNDOCKING:
+				if (photores > first_foto + 150)
+				{
+					state = ACCELERATION;
+				}
+				timeOJ = HAL_GetTick();
+				break;
+
+			case ACCELERATION:
+				if(timeOJ + 3000 < HAL_GetTick())
+					state = FLIGHT;
+				break;
+
+			case FLIGHT:
+				//выставить угол сервы
+				if (altitude < 150)
+				{
+					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
+					HAL_Delay(30);
+					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
+
+				}
+				state = DESCEND_SAS_MODE;
+				break;
+
+			case DESCEND_SAS_MODE:
+				if (altitude < 100)
+				{
+					state = RETURN_TO_GROUND;
+					timeOJ = HAL_GetTick();
+				}
+				break;
+
+			case RETURN_TO_GROUND:
+				if (timeOJ + 2000 < HAL_GetTick())
+				{
+					HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_9);
+				}
+				break;
+				//Включитьь пьезодинамикс
+
+		}
 
 
 		for (int i = 0; i < 50; i++)

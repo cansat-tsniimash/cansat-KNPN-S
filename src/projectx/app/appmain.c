@@ -73,7 +73,7 @@ typedef struct{
 	int16_t lis3mdl_z;
 	uint32_t pressure_bme280;
 	int16_t temp_bme280;
-	int16_t humidity_bme280;
+	uint16_t humidity_bme280;
 	uint16_t altitude_bme280;
 	float neo6mv2_latitude;
 	float neo6mv2_longitude;
