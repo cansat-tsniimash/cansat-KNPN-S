@@ -28,6 +28,7 @@ extern SPI_HandleTypeDef hspi1;
 extern UART_HandleTypeDef huart1;
 extern SPI_HandleTypeDef hspi2;
 extern ADC_HandleTypeDef hadc1;
+extern TIM_HandleTypeDef htim3;
 
 #pragma pack(push, 1)
 typedef struct
@@ -286,8 +287,17 @@ void appmain()
 
 	uint32_t timeOJ;
 
+
 	while(1)
 	{
+		HAL_Delay(500);
+		HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 25);
+		HAL_Delay(500);
+		HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 125);
+		HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+
 
 		bme280_get_sensor_data(BME280_ALL, &bmp_data1, &bmp280_1);
 		packet3.press1BMP280 = bmp_data1.pressure;
@@ -468,7 +478,9 @@ void appmain()
 				break;
 
 			case FLIGHT:
-				//выставить угол сервы
+				HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+				__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 1500);
+				HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 				if (altitude < 150)
 				{
 					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
