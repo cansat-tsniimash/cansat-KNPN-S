@@ -283,9 +283,10 @@ void appmain()
 	float first_pres = bmp_data2.pressure;
 	uint32_t photores;
 
-	//uint8_t Speed = 0;
+	uint8_t Speed = 0;
 
 	uint32_t timeOJ;
+
 
 
 	while(1)
@@ -326,8 +327,8 @@ void appmain()
 		packet1.lis3mdl_y = temp_magn[1];
 		packet1.lis3mdl_z = temp_magn[2];
 
-		//Speed = sqrt(2*(bmp_data2.pressure - bmp_data1.pressure)/ 1.246);
-		//packet3.speed = Speed;
+		Speed = sqrt(2*(bmp_data2.pressure - bmp_data1.pressure)/ 1.246);
+		packet3.speed = Speed;
 
 		GPS_Data gps_data = neo6mv2_GetData();
 		packet2.neo6mv2_latitude = gps_data.latitude;
@@ -478,9 +479,11 @@ void appmain()
 				break;
 
 			case FLIGHT:
+
 				HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 				__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 1500);
 				HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+
 				if (altitude < 150)
 				{
 					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
