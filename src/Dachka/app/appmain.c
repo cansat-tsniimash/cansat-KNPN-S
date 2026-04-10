@@ -291,6 +291,7 @@ void appmain()
 
 	while(1)
 	{
+
 		HAL_Delay(500);
 		HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 25);
@@ -396,6 +397,7 @@ void appmain()
 			result_packet = f_sync(&packet_file);
 		}
 
+
 /**		switch(nrf_state)
 		{
 		case NRF_STATE_PACK1:
@@ -487,7 +489,7 @@ void appmain()
 				if (altitude < 150)
 				{
 					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
-					HAL_Delay(30);
+					HAL_Delay(200);
 					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
 
 				}
