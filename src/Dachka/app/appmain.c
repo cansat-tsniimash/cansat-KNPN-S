@@ -489,7 +489,7 @@ void appmain()
 				if (altitude < 150)
 				{
 					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
-					HAL_Delay(200);
+					HAL_Delay(2000);
 					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
 
 				}
