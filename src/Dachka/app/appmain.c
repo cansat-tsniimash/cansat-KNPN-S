@@ -6,6 +6,11 @@
  *
  */
 
+
+
+// ПАМЯТИ НА МК ОСТАЛОСЬ 3,14 КБ
+
+
 #include "nRF24L01_PL/nrf24_lower_api_stm32.h"
 #include "nRF24L01_PL/nrf24_upper_api.h"
 #include "neo6mv2/neo6mv2.h"
@@ -119,9 +124,15 @@ typedef enum
 int Tick_To_Angle(int tick){
 
 	if (tick < 25)
+	{
 		tick = 25;
+	}
+
 	if (tick > 125)
+	{
 		tick = 125;
+	}
+
 
 	return (tick - 25) * 180/100;
 
@@ -129,9 +140,15 @@ int Tick_To_Angle(int tick){
 int Angle_To_Tick(int angle){
 
 	if (angle < 0)
+	{
 		angle = 0;
+	}
+
 	if (angle > 180)
+	{
 		angle = 180;
+	}
+
 
 	return 25 + angle * 100/180;
 
@@ -147,8 +164,9 @@ void Set_Angle(int angle){
 void Glider_Angle(uint16_t angle){
 
 
+
 	//Подумать как нормально считать)
-	uint16_t result = (uint16_t)(0.85f) * angle + (0);
+	uint16_t result = (uint16_t)(0.85f) * angle + (0); //слишком умная штука тут вроде преобразование типов
 	uint16_t tick = Angle_To_Tick(result);
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, tick);
@@ -334,10 +352,10 @@ void appmain()
 	while(1)
 	{
 
-		Glider_Angle(120);
-		Glider_Angle(90);
-		Set_Angle(120);
-		Set_Angle(90);
+		Set_Angle(0);
+		HAL_Delay(500);
+		Set_Angle(180);
+		HAL_Delay(500);
 		Set_Angle(0);
 		//HAL_Delay(500);
 		//HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
@@ -530,6 +548,8 @@ void appmain()
 				//HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 				//__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 1500);
 				//HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+
+				Glider_Angle(180);
 
 				if (altitude < 150)
 				{
