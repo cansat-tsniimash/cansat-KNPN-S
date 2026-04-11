@@ -278,6 +278,8 @@ void appmain(){
 
     e220_set_mode(e220_bus, E220_MODE_TM);
 
+
+
     float result;
 
 	while(1){

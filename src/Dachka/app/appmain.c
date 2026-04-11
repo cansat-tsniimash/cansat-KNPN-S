@@ -19,6 +19,7 @@
 #include "ff.h"
 #include "ff_gen_drv.h"
 #include "math.h"
+#include "fotoresictor/phororesistor.h"
 
 
 #define BMP280_ADDR (0x76 << 1)
@@ -281,7 +282,7 @@ void appmain()
 
 	bme280_get_sensor_data(BME280_ALL, &bmp_data2, &bmp280_2);
 	float first_pres = bmp_data2.pressure;
-	uint32_t photores;
+	float photores;
 
 	uint8_t Speed = 0;
 
@@ -313,7 +314,8 @@ void appmain()
 		float altitude = 44330.0 *(1 - pow((float)bmp_data2.pressure/first_pres, (1.0/5.255)));
 		packet3.alt = altitude;
 
-
+		photores = megalux(&hadc1, &photores);
+		packet2.photoresistor = photores * 1000;
 
 		lsm6ds3_acceleration_raw_get(&lsm_cxt, bf_lsm_xl);
 		packet1.acceleration_x = bf_lsm_xl[0];
@@ -337,10 +339,7 @@ void appmain()
 		packet2.neo6mv2_height = gps_data.altitude;
 		packet2.neo6mv2_fix = gps_data.fixQuality;
 
-		HAL_ADC_Start(&hadc1);
-		HAL_ADC_GetValue(&hadc1);
-		photores = HAL_ADC_GetValue(&hadc1);
-		packet2.photoresistor = photores;
+
 		//printf(" Пакетик: %d\n ", gps_data.cookie);
 		//printf(" Ширина: %f\n", packet2.neo6mv2_latitude);
 		//printf(" Долгота: %f\n", packet2.neo6mv2_longitude);
