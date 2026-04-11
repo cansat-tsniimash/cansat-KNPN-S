@@ -8,7 +8,7 @@
 
 
 
-// ПАМЯТИ НА МК ОСТАЛОСЬ 3,14 КБ
+// ПАМЯТИ НА МК ОСТАЛОСЬ 3,07 КБ
 
 
 #include "nRF24L01_PL/nrf24_lower_api_stm32.h"
@@ -121,36 +121,38 @@ typedef enum
 	RETURN_TO_GROUND,
 } glider_state_t;
 
-int Tick_To_Angle(int tick){
+#define SERVO_ANG_0 (25)
+#define SERVO_ANG_180 (125)
 
-	if (tick < 25)
+float Tick_To_Angle(int tick){
+
+	if (tick < SERVO_ANG_0)
 	{
-		tick = 25;
+		return 0;
 	}
 
-	if (tick > 125)
+	if (tick > SERVO_ANG_180)
 	{
-		tick = 125;
+		return 180;
 	}
 
 
-	return (tick - 25) * 180/100;
+	return (tick - SERVO_ANG_0) * 180.0/(SERVO_ANG_180 - SERVO_ANG_0);
 
 }
-int Angle_To_Tick(int angle){
+int Angle_To_Tick(float angle){
 
 	if (angle < 0)
 	{
-		angle = 0;
+		return SERVO_ANG_0;
 	}
 
 	if (angle > 180)
 	{
-		angle = 180;
+		return SERVO_ANG_180;
 	}
 
-
-	return 25 + angle * 100/180;
+	return SERVO_ANG_0 + (int)(angle * (SERVO_ANG_180 - SERVO_ANG_0)/180.0);
 
 }
 void Set_Angle(int angle){
@@ -161,17 +163,16 @@ void Set_Angle(int angle){
 
 }
 
-void Glider_Angle(uint16_t angle){
+void Glider_Angle(float angle){
 
-
-
-	//Подумать как нормально считать)
-	uint16_t result = (uint16_t)(0.85f) * angle + (0); //слишком умная штука тут вроде преобразование типов
+	//Подумать как нормально считать
+	float result = 0.85 * angle + (0); //слишком умная штука тут вроде преобразование типов
 	uint16_t tick = Angle_To_Tick(result);
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, tick);
-
 }
+
+
 
 void appmain()
 {
@@ -351,12 +352,11 @@ void appmain()
 
 	while(1)
 	{
-
-		Set_Angle(0);
 		HAL_Delay(500);
-		Set_Angle(180);
+		Glider_Angle(180);
 		HAL_Delay(500);
-		Set_Angle(0);
+		Glider_Angle(0);
+		HAL_Delay(500);
 		//HAL_Delay(500);
 		//HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 		//__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 25);
