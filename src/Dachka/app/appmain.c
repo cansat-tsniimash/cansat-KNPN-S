@@ -116,6 +116,43 @@ typedef enum
 	RETURN_TO_GROUND,
 } glider_state_t;
 
+int Tick_To_Angle(int tick){
+
+	if (tick < 25)
+		tick = 25;
+	if (tick > 125)
+		tick = 125;
+
+	return (tick - 25) * 180/100;
+
+}
+int Angle_To_Tick(int angle){
+
+	if (angle < 0)
+		angle = 0;
+	if (angle > 180)
+		angle = 180;
+
+	return 25 + angle * 100/180;
+
+}
+void Set_Angle(int angle){
+
+	int tick = Angle_To_Tick(angle);
+	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, tick);
+
+}
+
+void Glider_Angle(uint16_t angle){
+
+
+
+	uint16_t result = 0.85 * angle + (0);
+	uint16_t tick = Angle_To_Tick(result);
+	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, tick);
+
+}
+
 void appmain()
 {
 
@@ -290,16 +327,23 @@ void appmain()
 
 
 
+
+
 	while(1)
 	{
 
-		HAL_Delay(500);
-		HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 25);
-		HAL_Delay(500);
-		HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 125);
-		HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+		Glider_Angle(120);
+		Glider_Angle(90);
+		Set_Angle(120);
+		Set_Angle(90);
+		Set_Angle(0);
+		//HAL_Delay(500);
+		//HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+		//__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 25);
+		//HAL_Delay(500);
+		//HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+		//__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 125);
+		//HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 
 
 		bme280_get_sensor_data(BME280_ALL, &bmp_data1, &bmp280_1);
@@ -481,9 +525,9 @@ void appmain()
 
 			case FLIGHT:
 
-				HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-				__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 1500);
-				HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+				//HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+				//__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 1500);
+				//HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 
 				if (altitude < 150)
 				{
