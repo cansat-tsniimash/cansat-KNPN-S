@@ -147,7 +147,7 @@ void Set_Angle(int angle){
 void Glider_Angle(uint16_t angle){
 
 
-
+	//Подумать как нормально считать)
 	uint16_t result = (uint16_t)(0.85f) * angle + (0);
 	uint16_t tick = Angle_To_Tick(result);
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
