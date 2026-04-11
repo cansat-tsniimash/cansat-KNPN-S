@@ -172,7 +172,33 @@ void Glider_Angle(float angle){
 	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, tick);
 }
 
-
+uint16_t checksum_knpnD1(uint8_t *buf, uint16_t len){
+	uint16_t checksumD1 = 0xFFFF;
+	while (len--){
+		checksumD1 ^= *buf++ << 8;
+		for (uint8_t i = 0; i < 8; i++)
+			checksumD1 = checksumD1 & 0x8000 ?(checksumD1 << 1) ^ 0x1021 : checksumD1 << 1;
+	}
+	return checksumD1;
+}
+uint16_t checksum_knpnD2(uint8_t *buf, uint16_t len){
+	uint16_t checksumD2 = 0xFFFF;
+	while (len--){
+		checksumD2 ^= *buf++ << 8;
+		for (uint8_t i = 0; i < 8; i++)
+			checksumD2 = checksumD2 & 0x8000 ?(checksumD2 << 1) ^ 0x1021 : checksumD2 << 1;
+	}
+	return checksumD2;
+}
+uint16_t checksum_knpnD3(uint8_t *buf, uint16_t len){
+	uint16_t checksumD3 = 0xFFFF;
+	while (len--){
+		checksumD3 ^= *buf++ << 8;
+		for (uint8_t i = 0; i < 8; i++)
+			checksumD3 = checksumD3 & 0x8000 ?(checksumD3 << 1) ^ 0x1021 : checksumD3 << 1;
+	}
+	return checksumD3;
+}
 
 void appmain()
 {
@@ -341,6 +367,8 @@ void appmain()
 	bme280_get_sensor_data(BME280_ALL, &bmp_data2, &bmp280_2);
 	float first_pres = bmp_data2.pressure;
 	float photores;
+	uint16_t photo;
+
 
 	uint8_t Speed = 0;
 
@@ -378,8 +406,12 @@ void appmain()
 		float altitude = 44330.0 *(1 - pow((float)bmp_data2.pressure/first_pres, (1.0/5.255)));
 		packet3.alt = altitude;
 
+		HAL_ADC_Init(&hadc1);
+		photo = HAL_ADC_GetValue(&hadc1);
+		packet2.photoresistor = photo;
+
 		photores = megalux(&hadc1, &photores);
-		packet2.photoresistor = photores * 1000;
+		//packet2.photoresistor = photores * 1000;
 
 		lsm6ds3_acceleration_raw_get(&lsm_cxt, bf_lsm_xl);
 		packet1.acceleration_x = bf_lsm_xl[0];
@@ -428,8 +460,9 @@ void appmain()
 		packet1.time = time_pac;
 		packet2.time = time_pac;
 		packet3.time = time_pac;
-
-
+		packet1.checksum_knpn = checksum_knpnD1((uint8_t *)&packet1, sizeof(packet_1_t) - 2);
+		packet2.checksum_knpn = checksum_knpnD2((uint8_t *)&packet2, sizeof(packet_2_t) - 2);
+		packet3.checksum_knpn = checksum_knpnD3((uint8_t *)&packet3, sizeof(packet_3_t) - 2);
 
 
 		if (result_mount != FR_OK)
@@ -531,7 +564,7 @@ void appmain()
 		switch(state)
 		{
 			case BEFOR_UNDOCKING:
-				if (photores > first_foto + 150)
+				if (photo > first_foto + 150)
 				{
 					state = ACCELERATION;
 				}
