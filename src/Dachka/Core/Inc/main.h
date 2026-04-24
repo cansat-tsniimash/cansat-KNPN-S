@@ -59,6 +59,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define CE_Pin GPIO_PIN_2
+#define CE_GPIO_Port GPIOA
 #define CSN_Pin GPIO_PIN_3
 #define CSN_GPIO_Port GPIOA
 #define IRQ_Pin GPIO_PIN_4
@@ -69,8 +71,6 @@ void Error_Handler(void);
 #define PRJ_GPIO_Port GPIOA
 #define PICK_Pin GPIO_PIN_9
 #define PICK_GPIO_Port GPIOA
-#define CE_Pin GPIO_PIN_15
-#define CE_GPIO_Port GPIOA
 
 /* USER CODE BEGIN Private defines */
 

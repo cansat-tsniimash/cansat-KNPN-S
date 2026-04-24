@@ -9,7 +9,7 @@
 #include "fotoresictor/phororesistor.h"
 #include "math.h"
 
-
+#define RESISTOR (10000.0)
 
 int megalux(ADC_HandleTypeDef* hadc, float *minilux) {
     HAL_StatusTypeDef rc = HAL_ADC_Start(hadc);

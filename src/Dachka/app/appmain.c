@@ -216,7 +216,7 @@ void appmain()
 
 	nrf24_lower_api_config_t nrf24;
 	nrf24_spi_pins_t pins;
-	pins.ce_pin = GPIO_PIN_15;
+	pins.ce_pin = GPIO_PIN_2;
 	pins.ce_port = GPIOA;
 	pins.cs_pin = GPIO_PIN_3;
 	pins.cs_port = GPIOA;
@@ -366,8 +366,9 @@ void appmain()
 
 	bme280_get_sensor_data(BME280_ALL, &bmp_data2, &bmp280_2);
 	float first_pres = bmp_data2.pressure;
-	float photores;
+
 	uint16_t photo;
+
 
 
 	uint8_t Speed = 0;
@@ -375,7 +376,7 @@ void appmain()
 	uint32_t timeOJ;
 
 
-
+	float result;
 
 
 	while(1)
@@ -406,12 +407,10 @@ void appmain()
 		float altitude = 44330.0 *(1 - pow((float)bmp_data2.pressure/first_pres, (1.0/5.255)));
 		packet3.alt = altitude;
 
-		HAL_ADC_Init(&hadc1);
-		photo = HAL_ADC_GetValue(&hadc1);
-		packet2.photoresistor = photo;
+		megalux(&hadc1, &result);
+		packet2.photoresistor = result * 1000;
 
-		photores = megalux(&hadc1, &photores);
-		//packet2.photoresistor = photores * 1000;
+
 
 		lsm6ds3_acceleration_raw_get(&lsm_cxt, bf_lsm_xl);
 		packet1.acceleration_x = bf_lsm_xl[0];
@@ -493,60 +492,39 @@ void appmain()
 			result_packet = f_sync(&packet_file);
 		}
 
-
-/**		switch(nrf_state)
+		switch(nrf_state)
 		{
 		case NRF_STATE_PACK1:
-			nrf24_fifo_flush_rx(&nrf24);
-			nrf24_fifo_flush_tx(&nrf24);
 			nrf24_fifo_status(&nrf24, &status_rx, &status_tx);
-			if (status_tx == NRF24_FIFO_EMPTY)
-			{
-				nrf24_fifo_write(&nrf24, (uint8_t *)&packet1, 32, false);
-
-			}
-			else
+			if (status_tx == NRF24_FIFO_FULL)
 			{
 				nrf24_fifo_flush_rx(&nrf24);
 				nrf24_fifo_flush_tx(&nrf24);
-				nrf24_fifo_status(&nrf24, &status_rx, &status_tx);
-				nrf24_fifo_write(&nrf24, (uint8_t *)&packet1, 32, false);
+				nrf24_irq_clear(&nrf24, 0x07);
 			}
 			nrf24_fifo_write(&nrf24, (uint8_t *)&packet1, 32, false);
 			nrf_state = NRF_STATE_PACK2;
 			break;
 
 		case NRF_STATE_PACK2:
-			nrf24_fifo_flush_rx(&nrf24);
-			nrf24_fifo_flush_tx(&nrf24);
 			nrf24_fifo_status(&nrf24, &status_rx, &status_tx);
-			if (status_tx == NRF24_FIFO_EMPTY)
-			{
-				nrf24_fifo_write(&nrf24, (uint8_t *)&packet2, 32, false);
-			}
-			else
+			if (status_tx == NRF24_FIFO_FULL)
 			{
 				nrf24_fifo_flush_rx(&nrf24);
 				nrf24_fifo_flush_tx(&nrf24);
-				nrf24_fifo_write(&nrf24, (uint8_t *)&packet2, 32, false);
+				nrf24_irq_clear(&nrf24, 0x07);
 			}
 			nrf24_fifo_write(&nrf24, (uint8_t *)&packet2, 32, false);
 			nrf_state = NRF_STATE_PACK3;
 			break;
 
 		case NRF_STATE_PACK3:
-			nrf24_fifo_flush_rx(&nrf24);
-			nrf24_fifo_flush_tx(&nrf24);
 			nrf24_fifo_status(&nrf24, &status_rx, &status_tx);
-			if (status_tx == NRF24_FIFO_EMPTY)
-			{
-				nrf24_fifo_write(&nrf24, (uint8_t *)&packet3, 32, false);
-			}
-			else
+			if (status_tx == NRF24_FIFO_FULL)
 			{
 				nrf24_fifo_flush_rx(&nrf24);
 				nrf24_fifo_flush_tx(&nrf24);
-				nrf24_fifo_write(&nrf24, (uint8_t *)&packet3, 32, false);
+				nrf24_irq_clear(&nrf24, 0x07);
 			}
 			nrf24_fifo_write(&nrf24, (uint8_t *)&packet3, 32, false);
 			nrf_state = NRF_STATE_PACK1;
@@ -554,42 +532,39 @@ void appmain()
 		case NRF_STATE_WAIT:
 			break;
 		}
-		HAL_Delay(10);**/
 
-
-
-		nrf24_irq_get(&nrf24, &irq);
-		nrf24_irq_clear(&nrf24, 0x07);
+		for (int i = 0; i < 3; i++)
+		{
+			nrf24_irq_get(&nrf24, &irq);
+			if (irq == 0)
+				break;
+			nrf24_irq_clear(&nrf24, 0x07);
+		}
 
 		switch(state)
 		{
 			case BEFOR_UNDOCKING:
-				if (photo > first_foto + 150)
+				if (photo > first_foto * 0.9)
 				{
 					state = ACCELERATION;
+					timeOJ = HAL_GetTick();
 				}
-				timeOJ = HAL_GetTick();
 				break;
 
 			case ACCELERATION:
 				if(timeOJ + 3000 < HAL_GetTick())
+				{
 					state = FLIGHT;
+					Glider_Angle(180);
+				}
 				break;
 
 			case FLIGHT:
-
-				//HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-				//__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 1500);
-				//HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-
-				Glider_Angle(180);
-
 				if (altitude < 150)
 				{
 					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
 					HAL_Delay(2000);
 					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
-
 				}
 				state = DESCEND_SAS_MODE;
 				break;

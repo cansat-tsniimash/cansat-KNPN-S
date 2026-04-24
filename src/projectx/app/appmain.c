@@ -142,6 +142,17 @@ typedef struct
 }packet_3_t;
 #pragma pack(pop) // Компилятор может добавлять выравнивающие байты для оптимизации работы процессора
 
+typedef enum
+{
+	PREPARATION,
+	BEFOR_LAYING,
+	IN_ROCKET,
+	DESCEND_MODE,
+	UNDOCKING,
+	RETURN_TO_GROUND,
+} mother_state_t;
+
+
 bme280_dev_t bme_init(){
 	bme280_dev_t bme;
 	bme.delay_us = bmp_delay;
@@ -245,7 +256,7 @@ void appmain(){
 
     uint8_t bufdoc[3][32]={0};
 
-
+   mother_state_t state = PREPARATION;
     //neo6mv2
     neo6mv2_Init();
     __HAL_UART_ENABLE_IT(&huart1, UART_IT_RXNE);
@@ -253,15 +264,16 @@ void appmain(){
 
 	// e220-400t22s
 	e220_pins_t e220_bus;
-	e220_bus.m0_pinchik = GPIO_PIN_1;
-	e220_bus.m1_pinchik = GPIO_PIN_0;
-	e220_bus.m0_port = GPIOB;
-    e220_bus.m1_port = GPIOB;
-    e220_bus.aux_pin = GPIO_PIN_3;
-	e220_bus.aux_port = GPIOB;
+	e220_bus.m0_pinchik = GPIO_PIN_0;
+	e220_bus.m1_pinchik = GPIO_PIN_1;
+	e220_bus.m0_port = GPIOA;
+    e220_bus.m1_port = GPIOA;
+    e220_bus.aux_pin = GPIO_PIN_4;
+	e220_bus.aux_port = GPIOA;
     e220_bus.uart = &huart2;
     e220_set_mode(e220_bus, E220_MODE_DSM);
 
+    HAL_Delay(100);
     e220_set_addr(e220_bus, 0xFFFF);
     HAL_Delay(100);
     e220_set_reg1(e220_bus, E220_REG1_PACKET_LEN_200B, E220_REG1_RSSI_OFF, E220_REG1_TPOWER_22);
@@ -271,7 +283,7 @@ void appmain(){
     e220_set_reg3(e220_bus, E220_REG3_RSSI_BYTE_OFF, E220_REG3_TRANS_M_TRANSPARENT, E220_REG3_LBT_EN_OFF, E220_REG3_WOR_CYCLE_500);
     HAL_Delay(100);
     e220_set_reg0(e220_bus, E220_REG0_AIR_RATE_19200, E220_REG0_PARITY_8N1_DEF, E220_REG0_PORT_RATE_115200);
-
+    HAL_Delay(100);
 
     huart2.Init.BaudRate = 115000;
     HAL_UART_Init(&huart2);
@@ -285,8 +297,13 @@ void appmain(){
 	while(1){
 
 		nrf24_read_rx_payload(&nrf24, bufdoc[0], 32);
-
-
+		//if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_2) == GPIO_PIN_SET)
+		//{
+			//HAL_Delay(100);
+			//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_SET);
+			//HAL_Delay(100);
+			//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_RESET);
+		//}
 
 		// bme280
 		bme280_get_sensor_data(BME280_ALL, &data, &bme); // вывод давления и температуры
@@ -312,8 +329,8 @@ void appmain(){
 		packet.lis3mdl_z = temp_magn[2];
 
 // фоторезистор
-		megalux(&hadc1, &result);
-		packet.photoresistor = result * 1000;
+
+
 
 // Запаковка телеметрии
 		packet.time = HAL_GetTick();
@@ -321,12 +338,13 @@ void appmain(){
 		packet.checksum_knpn = checksum_knpn((uint8_t *)&packet, sizeof(packet_t) - 2);
 
 		// e220-400t22s
+		HAL_Delay(100);
 	    e220_send_packet(e220_bus, (uint8_t *)&packet, sizeof(packet_t));
 
 
 		// sd
 		if (mount_res != FR_OK){
-			//f_mount(NULL, "", 0);
+			f_mount(NULL, "", 0);
 			mount_res = f_mount(&fileSystem, "", 1);
 			bin_res = f_open(&binFile, (char*)bin_path, FA_WRITE | 0x30);
 		}
@@ -360,5 +378,43 @@ void appmain(){
 		printf("%f М ", packet.neo6mv2_height);
 		printf("%i спутники", gps_data.satellites);
 		printf("%i\n", packet.neo6mv2_fix);
+
+
+		/**switch(state)
+		//{
+		//	case PREPARATION:
+		//	{
+				if (GPIO_Read_Pin(GPIOB, GPIO_PIN_2) == GPIO_PIN_SET)
+				{
+					megalux(&hadc1, &result);
+					packet.photoresistor = result * 1000;
+				}
+			break;
+		//	}
+		 * 	case BEFOR_LAYING:
+		 * 	{
+		 *
+		 * 	}
+		 * 	case IN_ROCKET:
+		 * 	{
+		 *
+		 * 	}
+		 * 	case DESEND_MODE:
+		 * 	{
+		 *
+		 * 	}
+		 * 	case UNDOCKING:
+		 * 	{
+		 *
+		 * 	}
+		 * 	case RETURN_TO_GROUND:
+		 * 	{
+		 *
+		 * 	}
+
+
+
+		}**/
+
 	}
 }

@@ -436,13 +436,16 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, CSN_Pin|PRJ_Pin|PICK_Pin|CE_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, CE_Pin|CSN_Pin|PRJ_Pin|PICK_Pin
+                          |GPIO_PIN_15, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : CSN_Pin PRJ_Pin PICK_Pin CE_Pin */
-  GPIO_InitStruct.Pin = CSN_Pin|PRJ_Pin|PICK_Pin|CE_Pin;
+  /*Configure GPIO pins : CE_Pin CSN_Pin PRJ_Pin PICK_Pin
+                           PA15 */
+  GPIO_InitStruct.Pin = CE_Pin|CSN_Pin|PRJ_Pin|PICK_Pin
+                          |GPIO_PIN_15;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
