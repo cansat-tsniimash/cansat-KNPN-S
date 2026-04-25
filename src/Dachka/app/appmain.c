@@ -6,6 +6,11 @@
  *
  */
 
+
+
+// ПАМЯТИ НА МК ОСТАЛОСЬ 3,07 КБ
+
+
 #include "nRF24L01_PL/nrf24_lower_api_stm32.h"
 #include "nRF24L01_PL/nrf24_upper_api.h"
 #include "neo6mv2/neo6mv2.h"
@@ -16,8 +21,10 @@
 #include "lsm6ds3/lsm6ds3_reg.h"
 #include "lis3mdl/lis3mdl.h"
 #include "lis3mdl/lis3mdl_reg.h"
-#include "../Middlewares/Third_Party/FatFs/src/ff.h"
+#include "ff.h"
 #include "ff_gen_drv.h"
+#include "math.h"
+#include "fotoresictor/phororesistor.h"
 
 
 #define BMP280_ADDR (0x76 << 1)
@@ -26,12 +33,14 @@ extern I2C_HandleTypeDef hi2c1;
 extern SPI_HandleTypeDef hspi1;
 extern UART_HandleTypeDef huart1;
 extern SPI_HandleTypeDef hspi2;
+extern ADC_HandleTypeDef hadc1;
+extern TIM_HandleTypeDef htim3;
 
 #pragma pack(push, 1)
 typedef struct
 {
 
-	uint16_t start;
+	uint8_t start;
 	uint16_t number_packet;
 	uint32_t time;
 	int16_t angular_x;
@@ -50,7 +59,7 @@ typedef struct
 }packet_1_t;
 typedef struct
 {
-	uint16_t start;
+	uint8_t start;
 	uint16_t number_packet;
 	uint32_t time;
 	float neo6mv2_latitude;
@@ -70,18 +79,19 @@ typedef struct
 
 typedef struct
 {
-	uint16_t start;
+	uint8_t start;
 	uint16_t number_packet;
 	uint32_t time;
-	float press1BMP280;
-	uint16_t temp1_bmp280;
+	uint32_t press1BMP280;
+	uint32_t press2BMP280;
+	int16_t temp1_bmp280;
+	int16_t temp2_bmp280;
 	uint16_t hum1_bmp280;
-	float press2BMP280;
-	uint16_t temp2_bmp280;
 	uint16_t hum2_bmp280;
+	uint16_t alt;
 	uint8_t speed;
 	uint16_t checksum_knpn;
-	uint8_t reserv[7];
+	uint8_t reserv[4];
 
 
 }packet_3_t;
@@ -102,6 +112,93 @@ typedef enum
 	NRF_STATE_WAIT,
 } nrf_state_t;
 
+typedef enum
+{
+	BEFOR_UNDOCKING,
+	ACCELERATION,
+	FLIGHT,
+	DESCEND_SAS_MODE,
+	RETURN_TO_GROUND,
+} glider_state_t;
+
+#define SERVO_ANG_0 (25)
+#define SERVO_ANG_180 (125)
+
+float Tick_To_Angle(int tick){
+
+	if (tick < SERVO_ANG_0)
+	{
+		return 0;
+	}
+
+	if (tick > SERVO_ANG_180)
+	{
+		return 180;
+	}
+
+
+	return (tick - SERVO_ANG_0) * 180.0/(SERVO_ANG_180 - SERVO_ANG_0);
+
+}
+int Angle_To_Tick(float angle){
+
+	if (angle < 0)
+	{
+		return SERVO_ANG_0;
+	}
+
+	if (angle > 180)
+	{
+		return SERVO_ANG_180;
+	}
+
+	return SERVO_ANG_0 + (int)(angle * (SERVO_ANG_180 - SERVO_ANG_0)/180.0);
+
+}
+void Set_Angle(int angle){
+
+	int tick = Angle_To_Tick(angle);
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, tick);
+
+}
+
+void Glider_Angle(float angle){
+
+	//Подумать как нормально считать
+	float result = 0.85 * angle + (0); //слишком умная штука тут вроде преобразование типов
+	uint16_t tick = Angle_To_Tick(result);
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, tick);
+}
+
+uint16_t checksum_knpnD1(uint8_t *buf, uint16_t len){
+	uint16_t checksumD1 = 0xFFFF;
+	while (len--){
+		checksumD1 ^= *buf++ << 8;
+		for (uint8_t i = 0; i < 8; i++)
+			checksumD1 = checksumD1 & 0x8000 ?(checksumD1 << 1) ^ 0x1021 : checksumD1 << 1;
+	}
+	return checksumD1;
+}
+uint16_t checksum_knpnD2(uint8_t *buf, uint16_t len){
+	uint16_t checksumD2 = 0xFFFF;
+	while (len--){
+		checksumD2 ^= *buf++ << 8;
+		for (uint8_t i = 0; i < 8; i++)
+			checksumD2 = checksumD2 & 0x8000 ?(checksumD2 << 1) ^ 0x1021 : checksumD2 << 1;
+	}
+	return checksumD2;
+}
+uint16_t checksum_knpnD3(uint8_t *buf, uint16_t len){
+	uint16_t checksumD3 = 0xFFFF;
+	while (len--){
+		checksumD3 ^= *buf++ << 8;
+		for (uint8_t i = 0; i < 8; i++)
+			checksumD3 = checksumD3 & 0x8000 ?(checksumD3 << 1) ^ 0x1021 : checksumD3 << 1;
+	}
+	return checksumD3;
+}
 
 void appmain()
 {
@@ -119,7 +216,7 @@ void appmain()
 
 	nrf24_lower_api_config_t nrf24;
 	nrf24_spi_pins_t pins;
-	pins.ce_pin = GPIO_PIN_15;
+	pins.ce_pin = GPIO_PIN_2;
 	pins.ce_port = GPIOA;
 	pins.cs_pin = GPIO_PIN_3;
 	pins.cs_port = GPIOA;
@@ -161,10 +258,15 @@ void appmain()
 	packet_3_t packet3 = {0};
 	packet3.start = 0xDD;
 
+	uint16_t first_foto;
 
+	HAL_ADC_Start(&hadc1);
+	HAL_ADC_GetValue(&hadc1);
+	first_foto = HAL_ADC_GetValue(&hadc1);
 
+	glider_state_t state = BEFOR_UNDOCKING;
 	nrf_state_t nrf_state = NRF_STATE_PACK1;
-	 int irq;
+	int irq;
 
 	struct bme280_dev bmp280_1;
 	bmp280_1.intf = BME280_I2C_INTF;
@@ -254,36 +356,62 @@ void appmain()
 	lis3mdl_data_rate_set(&lis, LIS3MDL_UHP_80Hz);
 	lis3mdl_full_scale_set(&lis, LIS3MDL_16_GAUSS);
 
-	uint32_t time_pac = 0;
-
 	FATFS fleska;
-	FIL paсket1_file;
-	FIL paсket2_file;
-	FIL paсket3_file;
-	char paсket3_path[] = "paket3.bin";
-	char paсket2_path[] = "paket2.bin";
-	char paсket1_path[] = "paket1.bin";
+	FIL packet_file;
+	HAL_Delay(1);
+	char packet_path[] = "paket.bin";
 	FRESULT result_mount = f_mount(&fleska, "", 1);
-	FRESULT result_packet1 = 255;
-	FRESULT result_packet2 = 255;
-	FRESULT result_packet3 = 255;
+	FRESULT result_packet = 255;
 	UINT byte_count;
+
+	bme280_get_sensor_data(BME280_ALL, &bmp_data2, &bmp280_2);
+	float first_pres = bmp_data2.pressure;
+
+	uint16_t photo;
+
+
+
+	uint8_t Speed = 0;
+
+	uint32_t timeOJ;
+
+
+	float result;
+
 
 	while(1)
 	{
-		//time_pac = HAL_GetTick();
-		//time_pac = packet1.time;
-		//time_pac = packet2.time;
-		//time_pac = packet3.time;
+		HAL_Delay(500);
+		Glider_Angle(180);
+		HAL_Delay(500);
+		Glider_Angle(0);
+		HAL_Delay(500);
+		//HAL_Delay(500);
+		//HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+		//__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 25);
+		//HAL_Delay(500);
+		//HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+		//__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 125);
+		//HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+
 
 		bme280_get_sensor_data(BME280_ALL, &bmp_data1, &bmp280_1);
 		packet3.press1BMP280 = bmp_data1.pressure;
-		packet3.temp1_bmp280 = bmp_data1.temperature;
-		packet3.hum1_bmp280 = bmp_data1.humidity;
+		packet3.hum1_bmp280 = bmp_data1.humidity*10;
+		packet3.temp1_bmp280 = bmp_data1.temperature * 100;
 		bme280_get_sensor_data(BME280_ALL, &bmp_data2, &bmp280_2);
-		packet3.hum2_bmp280 = bmp_data2.humidity;
+		packet3.hum2_bmp280 = bmp_data2.humidity*10;
 		packet3.press2BMP280 = bmp_data2.pressure;
-		packet3.temp2_bmp280 = bmp_data2.temperature;
+		packet3.temp2_bmp280 = bmp_data2.temperature * 100;
+
+		float altitude = 44330.0 *(1 - pow((float)bmp_data2.pressure/first_pres, (1.0/5.255)));
+		packet3.alt = altitude;
+
+		megalux(&hadc1, &result);
+		packet2.photoresistor = result * 1000;
+
+
+
 		lsm6ds3_acceleration_raw_get(&lsm_cxt, bf_lsm_xl);
 		packet1.acceleration_x = bf_lsm_xl[0];
 		packet1.acceleration_y = bf_lsm_xl[1];
@@ -297,6 +425,9 @@ void appmain()
 		packet1.lis3mdl_y = temp_magn[1];
 		packet1.lis3mdl_z = temp_magn[2];
 
+		Speed = sqrt(2*(bmp_data2.pressure - bmp_data1.pressure)/ 1.246);
+		packet3.speed = Speed;
+
 		GPS_Data gps_data = neo6mv2_GetData();
 		packet2.neo6mv2_latitude = gps_data.latitude;
 		packet2.neo6mv2_longitude = gps_data.longitude;
@@ -307,7 +438,7 @@ void appmain()
 		//printf(" Пакетик: %d\n ", gps_data.cookie);
 		//printf(" Ширина: %f\n", packet2.neo6mv2_latitude);
 		//printf(" Долгота: %f\n", packet2.neo6mv2_longitude);
-		//printf(" Высота: %f\n ", packet2.neo6mv2_height);
+		//printf(" Выcота: %f\n ", packet2.neo6mv2_height);
 		//printf(" спутники: %i\n", gps_data.satellites);
 		//printf(" Фиксик: %i\n", packet2.neo6mv2_fix);
 
@@ -324,6 +455,13 @@ void appmain()
 		packet1.number_packet += 1;
 		packet2.number_packet += 1;
 		packet3.number_packet += 1;
+		uint32_t time_pac = HAL_GetTick();
+		packet1.time = time_pac;
+		packet2.time = time_pac;
+		packet3.time = time_pac;
+		packet1.checksum_knpn = checksum_knpnD1((uint8_t *)&packet1, sizeof(packet_1_t) - 2);
+		packet2.checksum_knpn = checksum_knpnD2((uint8_t *)&packet2, sizeof(packet_2_t) - 2);
+		packet3.checksum_knpn = checksum_knpnD3((uint8_t *)&packet3, sizeof(packet_3_t) - 2);
 
 
 		if (result_mount != FR_OK)
@@ -334,111 +472,59 @@ void appmain()
 			result_mount = f_mount(&fleska, "", 1);
 		}
 
-		if (result_mount == FR_OK && result_packet1 != FR_OK)
+		if (result_mount == FR_OK && result_packet != FR_OK)
 		{
-			if (result_packet1 != 255)
-				f_close(&paсket1_file);
-			result_packet1 = f_open(&paсket1_file, (const TCHAR*)&paсket1_path , FA_WRITE | FA_OPEN_ALWAYS | FA__WRITTEN);
-			if(result_packet1 != FR_OK)
+			if (result_packet != 255)
+				f_close(&packet_file);
+			result_packet = f_open(&packet_file, packet_path , FA_WRITE | FA_OPEN_ALWAYS | FA__WRITTEN);
+			if(result_packet != FR_OK)
 			{
 				f_mount(NULL, "", 1);
 				result_mount = f_mount(&fleska, "", 1);
 			}
 
 		}
-		if (result_packet1 == FR_OK && result_mount == FR_OK)
+		if (result_packet == FR_OK && result_mount == FR_OK)
 		{
-			result_packet1 = f_write(&paсket1_file, &packet1, sizeof(packet_1_t), &byte_count);
-			result_packet1 = f_sync(&paсket1_file);
-		}
-		if (result_mount == FR_OK && result_packet2 != FR_OK)
-		{
-			if (result_packet2 != 255)
-				f_close(&paсket2_file);
-			result_packet2 = f_open(&paсket2_file, (const TCHAR*)&paсket2_path , FA_WRITE | FA_OPEN_ALWAYS | FA__WRITTEN);
-			if(result_packet2 != FR_OK)
-			{
-				f_mount(NULL, "", 1);
-				result_mount = f_mount(&fleska, "", 1);
-			}
-
-		}
-		if (result_packet2 == FR_OK && result_mount == FR_OK)
-		{
-			result_packet2 = f_write(&paсket2_file, &packet2, sizeof(packet_2_t), &byte_count);
-			result_packet2 = f_sync(&paсket2_file);
-		}
-		if (result_mount == FR_OK && result_packet3 != FR_OK)
-		{
-			if (result_packet3 != 255)
-				f_close(&paсket3_file);
-			result_packet3 = f_open(&paсket3_file, (const TCHAR*)&paсket3_path , FA_WRITE | FA_OPEN_ALWAYS | FA__WRITTEN);
-			if(result_packet3 != FR_OK)
-			{
-				f_mount(NULL, "", 1);
-				result_mount = f_mount(&fleska, "", 1);
-			}
-
-		}
-		if (result_packet3 == FR_OK && result_mount == FR_OK)
-		{
-			result_packet3 = f_write(&paсket3_file, &packet3, sizeof(packet_3_t), &byte_count);
-			result_packet3 = f_sync(&paсket3_file);
+			result_packet = f_write(&packet_file, &packet1, sizeof(packet_1_t), &byte_count);
+			result_packet = f_write(&packet_file, &packet2, sizeof(packet_2_t), &byte_count);
+			result_packet = f_write(&packet_file, &packet3, sizeof(packet_3_t), &byte_count);
+			result_packet = f_sync(&packet_file);
 		}
 
 		switch(nrf_state)
 		{
 		case NRF_STATE_PACK1:
-			nrf24_fifo_flush_rx(&nrf24);
-			nrf24_fifo_flush_tx(&nrf24);
 			nrf24_fifo_status(&nrf24, &status_rx, &status_tx);
-			if (status_tx == NRF24_FIFO_EMPTY)
-			{
-				nrf24_fifo_write(&nrf24, (uint8_t *)&packet1, 32, false);
-
-			}
-			else
+			if (status_tx == NRF24_FIFO_FULL)
 			{
 				nrf24_fifo_flush_rx(&nrf24);
 				nrf24_fifo_flush_tx(&nrf24);
-				nrf24_fifo_status(&nrf24, &status_rx, &status_tx);
-				nrf24_fifo_write(&nrf24, (uint8_t *)&packet1, 32, false);
+				nrf24_irq_clear(&nrf24, 0x07);
 			}
 			nrf24_fifo_write(&nrf24, (uint8_t *)&packet1, 32, false);
 			nrf_state = NRF_STATE_PACK2;
 			break;
 
 		case NRF_STATE_PACK2:
-			nrf24_fifo_flush_rx(&nrf24);
-			nrf24_fifo_flush_tx(&nrf24);
 			nrf24_fifo_status(&nrf24, &status_rx, &status_tx);
-			if (status_tx == NRF24_FIFO_EMPTY)
-			{
-				nrf24_fifo_write(&nrf24, (uint8_t *)&packet2, 32, false);
-			}
-			else
+			if (status_tx == NRF24_FIFO_FULL)
 			{
 				nrf24_fifo_flush_rx(&nrf24);
 				nrf24_fifo_flush_tx(&nrf24);
-				nrf24_fifo_write(&nrf24, (uint8_t *)&packet2, 32, false);
+				nrf24_irq_clear(&nrf24, 0x07);
 			}
 			nrf24_fifo_write(&nrf24, (uint8_t *)&packet2, 32, false);
 			nrf_state = NRF_STATE_PACK3;
 			break;
 
 		case NRF_STATE_PACK3:
-			nrf24_fifo_flush_rx(&nrf24);
-			nrf24_fifo_flush_tx(&nrf24);
 			nrf24_fifo_status(&nrf24, &status_rx, &status_tx);
-			if (status_tx == NRF24_FIFO_EMPTY)
-			{
-				nrf24_fifo_write(&nrf24, (uint8_t *)&packet3, 32, false);
-			}
-			else
+			if (status_tx == NRF24_FIFO_FULL)
 			{
 				nrf24_fifo_flush_rx(&nrf24);
 				nrf24_fifo_flush_tx(&nrf24);
-				nrf24_fifo_write(&nrf24, (uint8_t *)&packet3, 32, false);
+				nrf24_irq_clear(&nrf24, 0x07);
 			}
 			nrf24_fifo_write(&nrf24, (uint8_t *)&packet3, 32, false);
 			nrf_state = NRF_STATE_PACK1;
@@ -446,10 +532,60 @@ void appmain()
 		case NRF_STATE_WAIT:
 			break;
 		}
-		HAL_Delay(10);
 
-		nrf24_irq_get(&nrf24, &irq);
-		nrf24_irq_clear(&nrf24, 0x07);
+		for (int i = 0; i < 3; i++)
+		{
+			nrf24_irq_get(&nrf24, &irq);
+			if (irq == 0)
+				break;
+			nrf24_irq_clear(&nrf24, 0x07);
+		}
+
+		switch(state)
+		{
+			case BEFOR_UNDOCKING:
+				if (photo > first_foto * 0.9)
+				{
+					state = ACCELERATION;
+					timeOJ = HAL_GetTick();
+				}
+				break;
+
+			case ACCELERATION:
+				if(timeOJ + 3000 < HAL_GetTick())
+				{
+					state = FLIGHT;
+					Glider_Angle(180);
+				}
+				break;
+
+			case FLIGHT:
+				if (altitude < 150)
+				{
+					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
+					HAL_Delay(2000);
+					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
+				}
+				state = DESCEND_SAS_MODE;
+				break;
+
+			case DESCEND_SAS_MODE:
+				if (altitude < 100)
+				{
+					state = RETURN_TO_GROUND;
+					timeOJ = HAL_GetTick();
+				}
+				break;
+
+			case RETURN_TO_GROUND:
+				if (timeOJ + 2000 < HAL_GetTick())
+				{
+					HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_9);
+				}
+				break;
+				//Включитьь пьезодинамикс
+
+		}
 
 
 		for (int i = 0; i < 50; i++)
