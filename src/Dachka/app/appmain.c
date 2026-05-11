@@ -111,6 +111,8 @@ typedef enum
 
 typedef enum
 {
+	PREPARATION,
+	PACKING,
 	BEFOR_UNDOCKING,
 	ACCELERATION,
 	FLIGHT,
@@ -557,8 +559,28 @@ void appmain()
 
 		switch(state)
 		{
+			case PREPARATION:
+				{
+					if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_10)== GPIO_PIN_SET)
+					{
+						state = PACKING;
+					}
+				}
+				break;
+			case PACKING:
+				{
+					if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_10)== GPIO_PIN_RESET)
+					{
+						state = PREPARATION;
+					}
+					if (timeOJ + 5000 < HAL_GetTick())
+					{
+						state = BEFOR_UNDOCKING;
+					}
+				}
+				break;
 			case BEFOR_UNDOCKING:
-				if (photo > first_foto * 0.9)
+				if (photo > first_foto * 0.8)
 				{
 					state = ACCELERATION;
 					timeOJ = HAL_GetTick();
@@ -577,7 +599,7 @@ void appmain()
 				if (altitude < 150)
 				{
 					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
-					HAL_Delay(2000);
+					HAL_Delay(1000);
 					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
 				}
 				state = DESCEND_SAS_MODE;

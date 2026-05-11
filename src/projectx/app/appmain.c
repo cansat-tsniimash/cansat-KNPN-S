@@ -382,8 +382,8 @@ void appmain(){
 				{
 					state = PACKING;
 				}
-			break;
 			}
+			break;
 			case PACKING:
 			{
 				if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_2) == GPIO_PIN_RESET)
@@ -399,7 +399,7 @@ void appmain(){
 		  	case IN_ROCKET:
 		  	{
 
-		  		if (foto > first_foto * 0.9)
+		  		if (foto > first_foto * 0.8)
 		  		{
 		  			state = DESCEND_MODE;
 		  		}
@@ -408,7 +408,6 @@ void appmain(){
 		  	{
 		  		if (altitude < 700)
 		  		{
-
 		  			state = UNDOCKING;
 		  		}
 		 	}
@@ -416,12 +415,11 @@ void appmain(){
 		  	{
 		  		//пережигалово
 		  		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);
-		  		HAL_Delay(2000);
+		  		HAL_Delay(1000);
 		  		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
 		  		state = RETURN_TO_GROUND;
-
-		  	break;
 		  	}
+		  	break;
 		  	case RETURN_TO_GROUND:
 		  	{
 		  		if (altitude < 150)
