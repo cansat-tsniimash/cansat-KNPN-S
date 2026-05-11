@@ -65,7 +65,7 @@ void nrf24_write_register(void * intf_ptr, uint8_t reg_addr, const uint8_t * reg
 	api_config->nrf24_CS(intf_ptr, false);
 }
 
-void nrf24_read_rx_payload(void * intf_ptr, uint8_t * payload_buffer, size_t payload_buffer_size)
+uint8_t nrf24_read_rx_payload(void * intf_ptr, uint8_t * payload_buffer, size_t payload_buffer_size)
 {
 	nrf24_lower_api_config_t *api_config = (nrf24_lower_api_config_t *)intf_ptr;
 	uint8_t command = NRF24_R_RX_PAYLOAD;
@@ -73,7 +73,7 @@ void nrf24_read_rx_payload(void * intf_ptr, uint8_t * payload_buffer, size_t pay
     // Считываем размер данных
 	nrf24_get_rx_payload_size(intf_ptr, &payload_size);
 	// Если размер данных от 1 до 32, то читаем данные
-	if (payload_size > 0 && payload_size < 32)
+	if (payload_size > 0 && payload_size <= 32)
 	{
 		// Если места на запись меньше, чем у нас есть данных, читем сколько, сколько есть места
 		if (payload_size > payload_buffer_size)
@@ -86,6 +86,7 @@ void nrf24_read_rx_payload(void * intf_ptr, uint8_t * payload_buffer, size_t pay
 		HAL_SPI_Receive(api_config->hspi, payload_buffer, payload_size, HAL_MAX_DELAY);
 		api_config->nrf24_CS(intf_ptr, false);
 	}
+	return payload_size;
 }
 
 void nrf24_write_tx_payload(void * intf_ptr, const uint8_t * payload_buffer, size_t payload_size, bool use_ack)
@@ -124,6 +125,18 @@ void nrf24_flush_tx(void * intf_ptr)
 	uint8_t command = NRF24_FLUSH_TX;
 	api_config->nrf24_CS(intf_ptr, true);
 	HAL_SPI_Transmit(api_config->hspi, &command, 1, HAL_MAX_DELAY);
+	api_config->nrf24_CS(intf_ptr, false);
+}
+
+// Повтор предыдущего отправляемого пакета
+void nrf24_activate(void * intf_ptr)
+{
+	nrf24_lower_api_config_t *api_config = (nrf24_lower_api_config_t *)intf_ptr;
+	uint8_t command = NRF24_ACTIVATE;
+	uint8_t data = 0x73;
+	api_config->nrf24_CS(intf_ptr, true);
+	HAL_SPI_Transmit(api_config->hspi, &command, 1, HAL_MAX_DELAY);
+	HAL_SPI_Transmit(api_config->hspi, &data, 1, HAL_MAX_DELAY);
 	api_config->nrf24_CS(intf_ptr, false);
 }
 

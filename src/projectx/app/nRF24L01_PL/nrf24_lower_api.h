@@ -40,7 +40,7 @@ void nrf24_write_register(void * intf_ptr, uint8_t reg_addr, const uint8_t * reg
    Если полученный пакет не влезает в payload_buffer, то будет записано только то, что влезло
    пакет удалется из NRF24 при чтении. А  максимум он может быть 32 байта.
    Для получения длины полученного пакета можно использовать nrf24_get_rx_payload_size*/
-void nrf24_read_rx_payload(void * intf_ptr, uint8_t * payload_buffer, size_t payload_buffer_size);
+uint8_t nrf24_read_rx_payload(void * intf_ptr, uint8_t * payload_buffer, size_t payload_buffer_size);
 
 // Запись пакета для отправки
 /* Аргументы:
@@ -66,6 +66,11 @@ void nrf24_flush_rx(void * intf_ptr);
 /* Аргументы:
    intf_ptr - указатель на структуру, содержащую настройки lower_api*/
 void nrf24_ruse_tx_pl(void * intf_ptr);
+
+// Включить регистр фичерсов
+/* Аргументы:
+   intf_ptr - указатель на структуру, содержащую настройки lower_api*/
+void nrf24_activate(void * intf_ptr);
 
 // Получает из радио размер полученного пакета
 /* Аргументы:

@@ -60,6 +60,7 @@ int nrf24_setup_protocol(void * intf_ptr, const nrf24_protocol_config_t * config
     uint8_t setup_aw = config->address_width;
     nrf24_write_register(intf_ptr, NRF24_REGADDR_SETUP_AW, &setup_aw, 1);
 
+
     uint8_t features = 0;
     if (config->en_ack_payload)
     {
@@ -73,7 +74,9 @@ int nrf24_setup_protocol(void * intf_ptr, const nrf24_protocol_config_t * config
     {
     	features |= NRF24_FEATURE_EN_DPL;
     }
+    nrf24_activate(intf_ptr);
     nrf24_write_register(intf_ptr, NRF24_REGADDR_FEATURE, &features, 1);
+    nrf24_activate(intf_ptr);
 
     uint8_t setup_retr = (config->auto_retransmit_delay << 4) | (config->auto_retransmit_count & 0xf);
     nrf24_write_register(intf_ptr, NRF24_REGADDR_SETUP_RETR, &setup_retr, 1);
@@ -260,13 +263,7 @@ int nrf24_fifo_status(void * intf_ptr, nrf24_fifo_status_t * rx_status, nrf24_fi
 
 int nrf24_fifo_read(void * intf_ptr, uint8_t * packet_buffer, uint8_t packet_buffer_size)
 {
-	uint8_t payload_size = 0;
-	nrf24_get_rx_payload_size(intf_ptr, &payload_size);
-	if (payload_size > 0)
-	{
-		nrf24_read_rx_payload(intf_ptr, packet_buffer, packet_buffer_size);
-	}
-	return payload_size;
+	return nrf24_read_rx_payload(intf_ptr, packet_buffer, packet_buffer_size);
 }
 
 

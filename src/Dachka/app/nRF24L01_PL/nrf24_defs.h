@@ -95,6 +95,7 @@
 #define NRF24_FLUSH_TX	          0b11100001
 #define NRF24_FLUSH_RX	          0b11100010
 #define NRF24_REUSE_TX_PL	      0b11100011
+#define NRF24_ACTIVATE	          0b01010000
 #define NRF24_R_RX_PL_WID         0b01100000
 #define NRF24_W_ACK_PAYLOAD       0b10101 // В конец пишется номер пайпа (3 бита)
 #define NRF24_W_TX_PAYLOAD_NO_ACK 0b10110000

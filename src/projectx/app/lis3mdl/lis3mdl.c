@@ -11,7 +11,7 @@
 
 #define LIS3MDL_I2C_ADDRESS (0x1C << 1)
 
-int32_t lis_read(void* handle, uint8_t reg_addr, uint8_t* data_ptr, uint16_t len){
+int32_t lis3mdl_read(void* handle, uint8_t reg_addr, uint8_t* data_ptr, uint16_t len){
 	HAL_StatusTypeDef res = HAL_I2C_Master_Transmit(handle, LIS3MDL_I2C_ADDRESS, &reg_addr, 1, 100);
     if (res != HAL_OK) {
         I2C_ClearBusyFlagErratum(handle, 100);
@@ -25,7 +25,7 @@ int32_t lis_read(void* handle, uint8_t reg_addr, uint8_t* data_ptr, uint16_t len
     return 0;
 }
 
-int32_t lis_write(void* handle, uint8_t reg_addr, const uint8_t *data_ptr, uint16_t len){
+int32_t lis3mdl_write(void* handle, uint8_t reg_addr, const uint8_t *data_ptr, uint16_t len){
 	uint8_t lis[2];
     for (uint16_t i = 0; i < len; i++) {
         lis[0] = reg_addr + i;
@@ -39,12 +39,12 @@ int32_t lis_write(void* handle, uint8_t reg_addr, const uint8_t *data_ptr, uint1
     return 0;
 }
 
-uint8_t lis_init(stmdev_ctx_t* lis_dev, I2C_HandleTypeDef* i2c_handle){
+uint8_t lis3mdl_init(stmdev_ctx_t* lis_dev, I2C_HandleTypeDef* i2c_handle){
 	uint8_t ret = 0;
 	uint8_t whoami;
 	dwt_delay_init();
-	lis_dev->read_reg = lis_read;
-	lis_dev->write_reg = lis_write;
+	lis_dev->read_reg = lis3mdl_read;
+	lis_dev->write_reg = lis3mdl_write;
 	lis_dev->handle = i2c_handle;
 	if(lis3mdl_reset_set(lis_dev, 1) != 0) ret = 1;;
 	HAL_Delay(100);

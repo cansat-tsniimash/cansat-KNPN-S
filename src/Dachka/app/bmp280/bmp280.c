@@ -45,8 +45,8 @@ BME280_INTF_RET_TYPE bmp280_write_reg (uint8_t reg_addr, const uint8_t *reg_data
 		HAL_StatusTypeDef hal_res = HAL_I2C_Master_Transmit(ptr->hi2c1, ptr->ADDR, BMP_MASSIV, 2, 100);
 		if (hal_res != HAL_OK)
 			return hal_res;
-		return HAL_OK;
 	}
+	return HAL_OK;
 }
 
 void bmp280_delay_us(uint32_t period, void *intf_ptr)

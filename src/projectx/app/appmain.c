@@ -40,8 +40,8 @@
 
 #include "e220400t22s/e220_400t22s.h" // радио (UART)
 #include "nRF24L01_PL/nrf24_upper_api.h"
-#include "nRF24L01_PL/nrf24_lower_api_stm32.h"
 #include "nRF24L01_PL/nrf24_lower_api.h"
+#include "nRF24L01_PL/nrf24_lower_api_stm32.h"
 
 #include "neo6mv2\neo6mv2.h" // датчик gps (UART)
 
@@ -84,68 +84,12 @@ typedef struct{
 	uint16_t checksum_knpn;
 } packet_t;
 
-typedef struct
-{
-
-	uint8_t start;
-	uint16_t number_packet;
-	uint32_t time;
-	int16_t angular_x;
-	int16_t angular_y;
-	int16_t angular_z;
-	int16_t acceleration_x;
-	int16_t acceleration_y;
-	int16_t acceleration_z;
-	int16_t lis3mdl_x;
-	int16_t lis3mdl_y;
-	int16_t lis3mdl_z;
-	uint8_t state;
-	uint16_t checksum_knpn;
-	uint8_t reserv[4];
-
-}packet_1_t;
-typedef struct
-{
-	uint8_t start;
-	uint16_t number_packet;
-	uint32_t time;
-	float neo6mv2_latitude;
-	float neo6mv2_longitude;
-	float neo6mv2_height;
-	uint8_t neo6mv2_fix;
-	uint16_t photoresistor;
-	uint16_t checksum_knpn;
-	uint8_t reserv[8];
-
-
-
-
-}packet_2_t;
-
-
-
-typedef struct
-{
-	uint8_t start;
-	uint16_t number_packet;
-	uint32_t time;
-	float press1BMP280;
-	float press2BMP280;
-	uint16_t temp1_bmp280;
-	uint16_t hum1_bmp280;
-	uint16_t alt;
-	uint8_t speed;
-	uint16_t checksum_knpn;
-	uint8_t reserv[8];
-
-
-}packet_3_t;
 #pragma pack(pop) // Компилятор может добавлять выравнивающие байты для оптимизации работы процессора
 
 typedef enum
 {
 	PREPARATION,
-	BEFOR_LAYING,
+	PACKING,
 	IN_ROCKET,
 	DESCEND_MODE,
 	UNDOCKING,
@@ -186,6 +130,7 @@ void appmain(){
 	packet.start = 0xAA; // Флаг пакета
 	packet.number_packet = 0; // Номер пакета
 
+
 	// bme280
 	struct bme280_data data;
 	bme280_dev_t bme = bme_init();
@@ -200,7 +145,7 @@ void appmain(){
 	// LIS3MDL
 	int16_t temp_magn[3] = {0};
 	stmdev_ctx_t lis;
-	lis_init(&lis, &hi2c1);
+	lis3mdl_init(&lis, &hi2c1);
 
 
 	// sd
@@ -223,6 +168,7 @@ void appmain(){
     nrf24_spi_init(&nrf24, &hspi1, &pins);
 
     nrf24_mode_power_down(&nrf24);
+    nrf24_mode_standby(&nrf24);
 
     nrf24_rf_config_t nrf24_conf;
     nrf24_conf.data_rate = NRF24_DATARATE_250_KBIT;
@@ -231,32 +177,32 @@ void appmain(){
     nrf24_setup_rf(&nrf24, &nrf24_conf);
 
     nrf24_protocol_config_t nrf24_prot;
-    nrf24_prot.crc_size = NRF24_CRCSIZE_DISABLE;
+    nrf24_prot.crc_size = NRF24_CRCSIZE_2BYTE;
     nrf24_prot.address_width = NRF24_ADDRES_WIDTH_5_BYTES;
-    nrf24_prot.en_dyn_payload_size = false;
-    nrf24_prot.en_ack_payload = false;
-    nrf24_prot.en_dyn_ack = false;
-    nrf24_prot.auto_retransmit_delay = 1;
-    nrf24_prot.auto_retransmit_count = 1;
+    nrf24_prot.en_dyn_payload_size = true;
+    nrf24_prot.en_ack_payload = true;
+    nrf24_prot.en_dyn_ack = true;
+    nrf24_prot.auto_retransmit_delay = 2;
+    nrf24_prot.auto_retransmit_count = 15;
     nrf24_setup_protocol(&nrf24, &nrf24_prot);
 
     nrf24_pipe_config_t nrf24_pipe_st;
-    nrf24_pipe_st.address = 3;
-    nrf24_pipe_st.payload_size = 0;
-    nrf24_pipe_st.enable_auto_ack = false;
-    nrf24_pipe_rx_start (&nrf24, 1 , &nrf24_pipe_st);
+    nrf24_pipe_st.address = 0x0303030303;
+    nrf24_pipe_st.payload_size = 32;
+    nrf24_pipe_st.enable_auto_ack = true;
+    nrf24_pipe_rx_start (&nrf24, 0, &nrf24_pipe_st);
+
+    nrf24_pipe_set_tx_addr(&nrf24, 0x0303030303);
 
     nrf24_fifo_status_t status_rx;
     nrf24_fifo_status_t status_tx;
 
 
-    nrf24_mode_standby(&nrf24);
-
     nrf24_mode_rx(&nrf24);
 
     uint8_t bufdoc[3][32]={0};
 
-   mother_state_t state = PREPARATION;
+    mother_state_t state = PREPARATION;
     //neo6mv2
     neo6mv2_Init();
     __HAL_UART_ENABLE_IT(&huart1, UART_IT_RXNE);
@@ -272,6 +218,7 @@ void appmain(){
 	e220_bus.aux_port = GPIOA;
     e220_bus.uart = &huart2;
     e220_set_mode(e220_bus, E220_MODE_DSM);
+
 
     HAL_Delay(100);
     e220_set_addr(e220_bus, 0xFFFF);
@@ -289,14 +236,64 @@ void appmain(){
     HAL_UART_Init(&huart2);
 
     e220_set_mode(e220_bus, E220_MODE_TM);
+    uint8_t nrf_num = 0;
+    uint16_t nrf_count = 0;
+
+    int irq;
+    nrf24_fifo_flush_rx(&nrf24);
+    nrf24_flush_rx(&nrf24);
+
+    bme280_get_sensor_data(BME280_ALL, &data, &bme);
+    float first_pres = data.pressure;
 
 
+    uint16_t foto;
 
     float result;
 
+    uint16_t first_foto;
+    first_foto = megalux(&hadc1, &result);
+    uint32_t timeOJ;
+    timeOJ = HAL_GetTick();
+
+
 	while(1){
 
-		nrf24_read_rx_payload(&nrf24, bufdoc[0], 32);
+		megalux(&hadc1, &result);
+
+		packet.photoresistor = result*1000;
+		foto = packet.photoresistor;
+
+
+		nrf24_fifo_status(&nrf24, &status_rx, &status_tx);
+		if (status_rx != NRF24_FIFO_EMPTY)
+		{
+			nrf_num = nrf24_fifo_read(&nrf24, bufdoc[0], 32);
+			if (nrf_num == 0)
+			{
+				nrf24_fifo_flush_rx(&nrf24);
+				nrf24_fifo_status(&nrf24, &status_rx, &status_tx);
+			}
+			else
+			{
+				nrf_count++;
+				//gcs
+				e220_send_packet(e220_bus, (uint8_t *)&bufdoc, sizeof(bufdoc));
+				nrf24_irq_clear(&nrf24, 0x07);
+				HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+			}
+
+		}
+
+		for (int i = 0; i < 4 ; i++)
+		{
+			nrf24_irq_get(&nrf24, &irq);
+			if (irq == 0)
+				break;
+			nrf24_irq_clear(&nrf24, 0x07);
+			HAL_Delay(1);
+		}
+
 		//if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_2) == GPIO_PIN_SET)
 		//{
 			//HAL_Delay(100);
@@ -310,6 +307,8 @@ void appmain(){
 		packet.pressure_bme280 = data.pressure;
 		packet.temp_bme280 = data.temperature * 100;
 		packet.humidity_bme280 = data.humidity * 100;
+		float altitude = 44330.0 *(1 - pow((float)data.pressure/first_pres, (1.0/5.255)));
+		packet.altitude_bme280 = altitude;
 
 		// LSM6DS3
 		lsm6ds3_angular_rate_raw_get(&lsm, temp_gyro);
@@ -372,49 +371,68 @@ void appmain(){
 		packet.neo6mv2_height = gps_data.altitude;
 		packet.neo6mv2_fix = gps_data.fixQuality;
 
-		printf("%d Печень ", gps_data.cookie);
-		printf("%f Ширина ", packet.neo6mv2_latitude);
-		printf("%f Долгота ", packet.neo6mv2_longitude);
-		printf("%f М ", packet.neo6mv2_height);
-		printf("%i спутники", gps_data.satellites);
-		printf("%i\n", packet.neo6mv2_fix);
+		packet.state = state;
 
 
-		/**switch(state)
-		//{
-		//	case PREPARATION:
-		//	{
-				if (GPIO_Read_Pin(GPIOB, GPIO_PIN_2) == GPIO_PIN_SET)
+		switch(state)
+		{
+			case PREPARATION:
+			{
+				if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_2) == GPIO_PIN_SET)
 				{
-					megalux(&hadc1, &result);
-					packet.photoresistor = result * 1000;
+					state = PACKING;
 				}
 			break;
-		//	}
-		 * 	case BEFOR_LAYING:
-		 * 	{
-		 *
-		 * 	}
-		 * 	case IN_ROCKET:
-		 * 	{
-		 *
-		 * 	}
-		 * 	case DESEND_MODE:
-		 * 	{
-		 *
-		 * 	}
-		 * 	case UNDOCKING:
-		 * 	{
-		 *
-		 * 	}
-		 * 	case RETURN_TO_GROUND:
-		 * 	{
-		 *
-		 * 	}
+			}
+			case PACKING:
+			{
+				if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_2) == GPIO_PIN_RESET)
+				{
+					state = PREPARATION;
+				}
+				if (timeOJ + 5000 < HAL_GetTick())
+				{
+					state = IN_ROCKET;
+				}
+			}
+			break;
+		  	case IN_ROCKET:
+		  	{
+
+		  		if (foto > first_foto * 0.9)
+		  		{
+		  			state = DESCEND_MODE;
+		  		}
+		 	}
+		  	case DESCEND_MODE:
+		  	{
+		  		if (altitude < 700)
+		  		{
+
+		  			state = UNDOCKING;
+		  		}
+		 	}
+		  	case UNDOCKING:
+		  	{
+		  		//пережигалово
+		  		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);
+		  		HAL_Delay(2000);
+		  		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
+		  		state = RETURN_TO_GROUND;
+
+		  	break;
+		  	}
+		  	case RETURN_TO_GROUND:
+		  	{
+		  		if (altitude < 150)
+		  		{
+		  			HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_11);
+		  		}
+		  	}
 
 
 
-		}**/
+		}
 
 	}
 }

@@ -70,9 +70,6 @@ typedef struct
 	uint16_t checksum_knpn;
 	uint8_t reserv[8];
 
-
-
-
 }packet_2_t;
 
 
@@ -172,36 +169,19 @@ void Glider_Angle(float angle){
 	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, tick);
 }
 
-uint16_t checksum_knpnD1(uint8_t *buf, uint16_t len){
-	uint16_t checksumD1 = 0xFFFF;
+uint16_t checksum_knpnD(uint8_t *buf, uint16_t len){
+	uint16_t checksumD = 0xFFFF;
 	while (len--){
-		checksumD1 ^= *buf++ << 8;
+		checksumD ^= *buf++ << 8;
 		for (uint8_t i = 0; i < 8; i++)
-			checksumD1 = checksumD1 & 0x8000 ?(checksumD1 << 1) ^ 0x1021 : checksumD1 << 1;
+			checksumD = checksumD & 0x8000 ?(checksumD << 1) ^ 0x1021 : checksumD << 1;
 	}
-	return checksumD1;
-}
-uint16_t checksum_knpnD2(uint8_t *buf, uint16_t len){
-	uint16_t checksumD2 = 0xFFFF;
-	while (len--){
-		checksumD2 ^= *buf++ << 8;
-		for (uint8_t i = 0; i < 8; i++)
-			checksumD2 = checksumD2 & 0x8000 ?(checksumD2 << 1) ^ 0x1021 : checksumD2 << 1;
-	}
-	return checksumD2;
-}
-uint16_t checksum_knpnD3(uint8_t *buf, uint16_t len){
-	uint16_t checksumD3 = 0xFFFF;
-	while (len--){
-		checksumD3 ^= *buf++ << 8;
-		for (uint8_t i = 0; i < 8; i++)
-			checksumD3 = checksumD3 & 0x8000 ?(checksumD3 << 1) ^ 0x1021 : checksumD3 << 1;
-	}
-	return checksumD3;
+	return checksumD;
 }
 
 void appmain()
 {
+	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
 
 	dwt_delay_init();
 
@@ -213,7 +193,7 @@ void appmain()
 
 
 
-
+	HAL_Delay(200);
 	nrf24_lower_api_config_t nrf24;
 	nrf24_spi_pins_t pins;
 	pins.ce_pin = GPIO_PIN_2;
@@ -228,22 +208,28 @@ void appmain()
 
 	nrf24_rf_config_t nrf24_conf;
 	nrf24_conf.data_rate = NRF24_DATARATE_250_KBIT;
-	nrf24_conf.tx_power = NRF24_TXPOWER_MINUS_0_DBM;
+	nrf24_conf.tx_power = NRF24_TXPOWER_MINUS_6_DBM;
 	nrf24_conf.rf_channel = 0;
 	nrf24_setup_rf(&nrf24, &nrf24_conf);
 
 	nrf24_protocol_config_t nrf24_prot;
-	nrf24_prot.crc_size = NRF24_CRCSIZE_DISABLE;
+	nrf24_prot.crc_size = NRF24_CRCSIZE_2BYTE;
 	nrf24_prot.address_width = NRF24_ADDRES_WIDTH_5_BYTES;
-	nrf24_prot.en_dyn_payload_size = false;
-	nrf24_prot.en_ack_payload = false;
-	nrf24_prot.en_dyn_ack = false;
-	nrf24_prot.auto_retransmit_delay = 1;
-	nrf24_prot.auto_retransmit_count = 10;
+	nrf24_prot.en_dyn_payload_size = true;
+	nrf24_prot.en_ack_payload = true;
+	nrf24_prot.en_dyn_ack = true;
+	nrf24_prot.auto_retransmit_delay = 2;
+	nrf24_prot.auto_retransmit_count = 15;
 	nrf24_setup_protocol(&nrf24, &nrf24_prot);
 
 	nrf24_fifo_status_t status_rx;
 	nrf24_fifo_status_t status_tx;
+
+	nrf24_pipe_config_t nrf24_pipe_st;
+    nrf24_pipe_st.address = 0x0303030303;
+    nrf24_pipe_st.payload_size = 32;
+    nrf24_pipe_st.enable_auto_ack = true;
+    nrf24_pipe_rx_start (&nrf24, 1 , &nrf24_pipe_st);
 
 	nrf24_pipe_set_tx_addr(&nrf24, 0x0303030303);
 
@@ -265,7 +251,7 @@ void appmain()
 	first_foto = HAL_ADC_GetValue(&hadc1);
 
 	glider_state_t state = BEFOR_UNDOCKING;
-	nrf_state_t nrf_state = NRF_STATE_PACK1;
+	nrf_state_t nrf_state = NRF_STATE_PACK2;
 	int irq;
 
 	struct bme280_dev bmp280_1;
@@ -367,9 +353,9 @@ void appmain()
 	bme280_get_sensor_data(BME280_ALL, &bmp_data2, &bmp280_2);
 	float first_pres = bmp_data2.pressure;
 
-	uint16_t photo;
+	uint16_t photo = 0;
 
-
+	uint16_t res_foto;
 
 	uint8_t Speed = 0;
 
@@ -381,11 +367,12 @@ void appmain()
 
 	while(1)
 	{
-		HAL_Delay(500);
-		Glider_Angle(180);
-		HAL_Delay(500);
-		Glider_Angle(0);
-		HAL_Delay(500);
+
+		//HAL_Delay(500);
+		//Glider_Angle(180);
+		//HAL_Delay(500);
+		//Glider_Angle(0);
+		//HAL_Delay(500);
 		//HAL_Delay(500);
 		//HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 		//__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 25);
@@ -406,6 +393,9 @@ void appmain()
 
 		float altitude = 44330.0 *(1 - pow((float)bmp_data2.pressure/first_pres, (1.0/5.255)));
 		packet3.alt = altitude;
+
+
+
 
 		megalux(&hadc1, &result);
 		packet2.photoresistor = result * 1000;
@@ -459,9 +449,7 @@ void appmain()
 		packet1.time = time_pac;
 		packet2.time = time_pac;
 		packet3.time = time_pac;
-		packet1.checksum_knpn = checksum_knpnD1((uint8_t *)&packet1, sizeof(packet_1_t) - 2);
-		packet2.checksum_knpn = checksum_knpnD2((uint8_t *)&packet2, sizeof(packet_2_t) - 2);
-		packet3.checksum_knpn = checksum_knpnD3((uint8_t *)&packet3, sizeof(packet_3_t) - 2);
+
 
 
 		if (result_mount != FR_OK)
@@ -492,54 +480,80 @@ void appmain()
 			result_packet = f_sync(&packet_file);
 		}
 
+		packet1.checksum_knpn = checksum_knpnD((uint8_t *) &packet1, sizeof(packet_1_t) - 2 - 4);
+		packet2.checksum_knpn = checksum_knpnD((uint8_t *) &packet2, sizeof(packet_2_t) - 2 - 8);
+		packet3.checksum_knpn = checksum_knpnD((uint8_t *) &packet3, sizeof(packet_3_t) - 2 - 4);
+
 		switch(nrf_state)
 		{
 		case NRF_STATE_PACK1:
 			nrf24_fifo_status(&nrf24, &status_rx, &status_tx);
-			if (status_tx == NRF24_FIFO_FULL)
+			if (status_tx != NRF24_FIFO_EMPTY)
 			{
 				nrf24_fifo_flush_rx(&nrf24);
 				nrf24_fifo_flush_tx(&nrf24);
 				nrf24_irq_clear(&nrf24, 0x07);
 			}
+			HAL_Delay(1);
+			//nrf24_fifo_write(&nrf24, (uint8_t *)&packet1, 32, false);
 			nrf24_fifo_write(&nrf24, (uint8_t *)&packet1, 32, false);
+			//nrf24_fifo_write(&nrf24, (uint8_t *)&packet1, 32, false);
+			HAL_Delay(1);
+			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 			nrf_state = NRF_STATE_PACK2;
 			break;
 
 		case NRF_STATE_PACK2:
 			nrf24_fifo_status(&nrf24, &status_rx, &status_tx);
-			if (status_tx == NRF24_FIFO_FULL)
+			if (status_tx != NRF24_FIFO_EMPTY)
 			{
 				nrf24_fifo_flush_rx(&nrf24);
 				nrf24_fifo_flush_tx(&nrf24);
 				nrf24_irq_clear(&nrf24, 0x07);
 			}
+			HAL_Delay(1);
+			//nrf24_fifo_write(&nrf24, (uint8_t *)&packet2, 32, false);
 			nrf24_fifo_write(&nrf24, (uint8_t *)&packet2, 32, false);
+			//nrf24_fifo_write(&nrf24, (uint8_t *)&packet2, 32, false);
+			HAL_Delay(1);
+			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 			nrf_state = NRF_STATE_PACK3;
 			break;
 
 		case NRF_STATE_PACK3:
 			nrf24_fifo_status(&nrf24, &status_rx, &status_tx);
-			if (status_tx == NRF24_FIFO_FULL)
+			if (status_tx != NRF24_FIFO_EMPTY)
 			{
 				nrf24_fifo_flush_rx(&nrf24);
 				nrf24_fifo_flush_tx(&nrf24);
 				nrf24_irq_clear(&nrf24, 0x07);
 			}
+			HAL_Delay(1);
+			//nrf24_fifo_write(&nrf24, (uint8_t *)&packet3, 32, false);
 			nrf24_fifo_write(&nrf24, (uint8_t *)&packet3, 32, false);
+			//nrf24_fifo_write(&nrf24, (uint8_t *)&packet3, 32, false);
+			HAL_Delay(1);
+			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 			nrf_state = NRF_STATE_PACK1;
 			break;
 		case NRF_STATE_WAIT:
 			break;
 		}
-
-		for (int i = 0; i < 3; i++)
+		int i = 0;
+		for (i = 0; i < 8 ; i++)
 		{
 			nrf24_irq_get(&nrf24, &irq);
 			if (irq == 0)
 				break;
 			nrf24_irq_clear(&nrf24, 0x07);
+			HAL_Delay(1);
 		}
+		if (i != 0)
+			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+		else
+			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+
+
 
 		switch(state)
 		{
@@ -595,7 +609,6 @@ void appmain()
 				break;
 			}
 		}
-		nrf24_irq_get(&nrf24, &irq);
 
 	}
 
