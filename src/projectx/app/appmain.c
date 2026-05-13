@@ -94,6 +94,7 @@ typedef enum
 	DESCEND_MODE,
 	UNDOCKING,
 	RETURN_TO_GROUND,
+	TOUCHING_THE_GROUND,
 } mother_state_t;
 
 
@@ -381,9 +382,11 @@ void appmain(){
 				if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_2) == GPIO_PIN_SET)
 				{
 					state = PACKING;
+					timeOJ = HAL_GetTick();
 				}
+				break;
 			}
-			break;
+
 			case PACKING:
 			{
 				if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_2) == GPIO_PIN_RESET)
@@ -394,38 +397,53 @@ void appmain(){
 				{
 					state = IN_ROCKET;
 				}
+				break;
 			}
-			break;
 		  	case IN_ROCKET:
 		  	{
-
 		  		if (foto > first_foto * 0.8)
 		  		{
 		  			state = DESCEND_MODE;
 		  		}
+		  		break;
 		 	}
 		  	case DESCEND_MODE:
 		  	{
-		  		if (altitude < 700)
+		  		if (altitude < 1)
 		  		{
 		  			state = UNDOCKING;
+		  			timeOJ = HAL_GetTick();
+		  			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);
 		  		}
+		  		break;
 		 	}
 		  	case UNDOCKING:
 		  	{
-		  		//пережигалово
-		  		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);
-		  		HAL_Delay(1000);
-		  		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
-		  		state = RETURN_TO_GROUND;
+
+		  		if (timeOJ + 1000 < HAL_GetTick())
+		  		{
+		  			HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
+		  			state = RETURN_TO_GROUND;
+		  		}
+		  		break;
 		  	}
-		  	break;
+
 		  	case RETURN_TO_GROUND:
 		  	{
-		  		if (altitude < 150)
+		  		if (altitude < 0.5)
+		  		{
+		  			state = TOUCHING_THE_GROUND;
+		  			timeOJ = HAL_GetTick();
+		  		}
+		  		break;
+		  	}
+		  	case TOUCHING_THE_GROUND:
+		  	{
+		  		if (timeOJ + 2000 < HAL_GetTick())
 		  		{
 		  			HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_11);
 		  		}
+		  		break;
 		  	}
 
 

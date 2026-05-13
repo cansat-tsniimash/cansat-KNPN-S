@@ -365,6 +365,7 @@ void appmain()
 
 
 	float result;
+	Glider_Angle(0);
 
 
 	while(1)
@@ -555,70 +556,87 @@ void appmain()
 		else
 			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
 
+		packet1.state = state;
 
 
 		switch(state)
 		{
 			case PREPARATION:
+			{
+				if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_10)== GPIO_PIN_SET)
 				{
-					if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_10)== GPIO_PIN_SET)
-					{
-						state = PACKING;
-					}
+					state = PACKING;
+					timeOJ = HAL_GetTick();
 				}
 				break;
+			}
+
 			case PACKING:
+			{
+				if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_10)== GPIO_PIN_RESET)
 				{
-					if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_10)== GPIO_PIN_RESET)
-					{
-						state = PREPARATION;
-					}
-					if (timeOJ + 5000 < HAL_GetTick())
-					{
-						state = BEFOR_UNDOCKING;
-					}
+					state = PREPARATION;
+				}
+				if (timeOJ + 5000 < HAL_GetTick())
+				{
+					state = BEFOR_UNDOCKING;
 				}
 				break;
+			}
+
 			case BEFOR_UNDOCKING:
+			{
 				if (photo > first_foto * 0.8)
 				{
 					state = ACCELERATION;
 					timeOJ = HAL_GetTick();
 				}
 				break;
+			}
 
 			case ACCELERATION:
+			{
 				if(timeOJ + 3000 < HAL_GetTick())
 				{
-					state = FLIGHT;
 					Glider_Angle(180);
+					state = FLIGHT;
+					timeOJ = HAL_GetTick();
+					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
+
 				}
 				break;
+			}
 
 			case FLIGHT:
-				if (altitude < 150)
+			{
+
+				if (timeOJ + 1000 < HAL_GetTick())
 				{
-					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
-					HAL_Delay(1000);
 					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
+					state = DESCEND_SAS_MODE;
 				}
-				state = DESCEND_SAS_MODE;
+
 				break;
+			}
 
 			case DESCEND_SAS_MODE:
-				if (altitude < 100)
+			{
+				if (altitude < 1)
 				{
 					state = RETURN_TO_GROUND;
 					timeOJ = HAL_GetTick();
 				}
 				break;
+			}
 
 			case RETURN_TO_GROUND:
+			{
 				if (timeOJ + 2000 < HAL_GetTick())
 				{
 					HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_9);
 				}
 				break;
+			}
 				//Включитьь пьезодинамикс
 
 		}
