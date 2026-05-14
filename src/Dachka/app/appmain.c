@@ -246,11 +246,12 @@ void appmain()
 	packet_3_t packet3 = {0};
 	packet3.start = 0xDD;
 
-	uint16_t first_foto;
-
+	HAL_ADC_Init(&hadc1);
+	uint16_t first_foto = 0;
+	float result;
 	HAL_ADC_Start(&hadc1);
 	HAL_ADC_GetValue(&hadc1);
-	first_foto = HAL_ADC_GetValue(&hadc1);
+	first_foto = HAL_ADC_GetValue(&hadc1);//megalux(&hadc1, &result);
 
 	glider_state_t state = BEFOR_UNDOCKING;
 	nrf_state_t nrf_state = NRF_STATE_PACK2;
@@ -364,8 +365,11 @@ void appmain()
 	uint32_t timeOJ;
 
 
-	float result;
+
 	Glider_Angle(0);
+
+	state = PREPARATION;
+
 
 
 	while(1)
@@ -394,14 +398,14 @@ void appmain()
 		packet3.press2BMP280 = bmp_data2.pressure;
 		packet3.temp2_bmp280 = bmp_data2.temperature * 100;
 
-		float altitude = 44330.0 *(1 - pow((float)bmp_data2.pressure/first_pres, (1.0/5.255)));
+		float altitude = 44330.0 *(1 - pow((float)bmp_data1.pressure/first_pres, (1.0/5.255)));
 		packet3.alt = altitude;
 
 
-
-
-		megalux(&hadc1, &result);
-		packet2.photoresistor = result * 1000;
+		HAL_ADC_Start(&hadc1);
+		HAL_ADC_Init(&hadc1);
+		photo = HAL_ADC_GetValue(&hadc1);//megalux(&hadc1, &result);
+		packet2.photoresistor = photo * 1000;
 
 
 
@@ -601,7 +605,7 @@ void appmain()
 					Glider_Angle(180);
 					state = FLIGHT;
 					timeOJ = HAL_GetTick();
-					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
+					//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
 
 				}
 				break;
@@ -612,7 +616,7 @@ void appmain()
 
 				if (timeOJ + 1000 < HAL_GetTick())
 				{
-					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
+					//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
 					state = DESCEND_SAS_MODE;
 				}
 
