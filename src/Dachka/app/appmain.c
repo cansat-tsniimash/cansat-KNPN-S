@@ -8,7 +8,7 @@
 
 
 
-// ПАМЯТИ НА МК ОСТАЛОСЬ 3,07 КБ
+
 
 
 #include "nRF24L01_PL/nrf24_lower_api_stm32.h"
@@ -164,7 +164,7 @@ void Set_Angle(int angle){
 
 void Glider_Angle(float angle){
 
-	//Подумать как нормально считать
+
 	float result = 0.85 * angle + (0); //слишком умная штука тут вроде преобразование типов
 	uint16_t tick = Angle_To_Tick(result);
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
@@ -354,7 +354,7 @@ void appmain()
 	UINT byte_count;
 
 	bme280_get_sensor_data(BME280_ALL, &bmp_data2, &bmp280_2);
-	float first_pres = bmp_data2.pressure;
+	float first_pres = bmp_data1.pressure;
 
 	uint16_t photo = 0;
 
@@ -371,22 +371,12 @@ void appmain()
 	state = PREPARATION;
 
 
-
+	uint32_t packet_wait_deadline = 0;
+	const uint32_t packet_wait_period = 100;
 	while(1)
 	{
 
-		//HAL_Delay(500);
-		//Glider_Angle(180);
-		//HAL_Delay(500);
-		//Glider_Angle(0);
-		//HAL_Delay(500);
-		//HAL_Delay(500);
-		//HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-		//__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 25);
-		//HAL_Delay(500);
-		//HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-		//__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 125);
-		//HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+
 
 
 		bme280_get_sensor_data(BME280_ALL, &bmp_data1, &bmp280_1);
@@ -404,7 +394,7 @@ void appmain()
 
 		HAL_ADC_Start(&hadc1);
 		HAL_ADC_Init(&hadc1);
-		photo = HAL_ADC_GetValue(&hadc1);//megalux(&hadc1, &result);
+		photo = HAL_ADC_GetValue(&hadc1);
 		packet2.photoresistor = photo * 1000;
 
 
@@ -431,20 +421,6 @@ void appmain()
 		packet2.neo6mv2_height = gps_data.altitude;
 		packet2.neo6mv2_fix = gps_data.fixQuality;
 
-
-		//printf(" Пакетик: %d\n ", gps_data.cookie);
-		//printf(" Ширина: %f\n", packet2.neo6mv2_latitude);
-		//printf(" Долгота: %f\n", packet2.neo6mv2_longitude);
-		//printf(" Выcота: %f\n ", packet2.neo6mv2_height);
-		//printf(" спутники: %i\n", gps_data.satellites);
-		//printf(" Фиксик: %i\n", packet2.neo6mv2_fix);
-
-		//printf("Температура BMP1: %lf\n ", bmp_data1.temperature);
-		//printf("Температура BMP2: %lf\n ", bmp_data2.temperature);
-		//printf("Влаго BMP1: %lf\n ", bmp_data.humidity );
-		//HAL_Delay(100);
-		//printf("Температура BMP2:  %f\n ", bmp_data2.pressure);
-		//printf("%f %f %f %f\n", bmp_data1.temperature, bmp_data1.pressure, bmp_data2.temperature, bmp_data2.pressure);
 
 
 
@@ -491,9 +467,13 @@ void appmain()
 		packet2.checksum_knpn = checksum_knpnD((uint8_t *) &packet2, sizeof(packet_2_t) - 2 - 8);
 		packet3.checksum_knpn = checksum_knpnD((uint8_t *) &packet3, sizeof(packet_3_t) - 2 - 4);
 
+		const uint32_t now = HAL_GetTick();
 		switch(nrf_state)
 		{
 		case NRF_STATE_PACK1:
+			if (now < packet_wait_deadline)
+				break;
+
 			nrf24_fifo_status(&nrf24, &status_rx, &status_tx);
 			if (status_tx != NRF24_FIFO_EMPTY)
 			{
@@ -502,15 +482,17 @@ void appmain()
 				nrf24_irq_clear(&nrf24, 0x07);
 			}
 			HAL_Delay(1);
-			//nrf24_fifo_write(&nrf24, (uint8_t *)&packet1, 32, false);
 			nrf24_fifo_write(&nrf24, (uint8_t *)&packet1, 32, false);
-			//nrf24_fifo_write(&nrf24, (uint8_t *)&packet1, 32, false);
 			HAL_Delay(1);
 			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 			nrf_state = NRF_STATE_PACK2;
+			packet_wait_deadline = now + packet_wait_period;
 			break;
 
 		case NRF_STATE_PACK2:
+			if (now < packet_wait_deadline)
+				break;
+
 			nrf24_fifo_status(&nrf24, &status_rx, &status_tx);
 			if (status_tx != NRF24_FIFO_EMPTY)
 			{
@@ -519,15 +501,17 @@ void appmain()
 				nrf24_irq_clear(&nrf24, 0x07);
 			}
 			HAL_Delay(1);
-			//nrf24_fifo_write(&nrf24, (uint8_t *)&packet2, 32, false);
 			nrf24_fifo_write(&nrf24, (uint8_t *)&packet2, 32, false);
-			//nrf24_fifo_write(&nrf24, (uint8_t *)&packet2, 32, false);
 			HAL_Delay(1);
 			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 			nrf_state = NRF_STATE_PACK3;
+			packet_wait_deadline = now + packet_wait_period;
 			break;
 
 		case NRF_STATE_PACK3:
+			if (now < packet_wait_deadline)
+				break;
+
 			nrf24_fifo_status(&nrf24, &status_rx, &status_tx);
 			if (status_tx != NRF24_FIFO_EMPTY)
 			{
@@ -536,16 +520,17 @@ void appmain()
 				nrf24_irq_clear(&nrf24, 0x07);
 			}
 			HAL_Delay(1);
-			//nrf24_fifo_write(&nrf24, (uint8_t *)&packet3, 32, false);
 			nrf24_fifo_write(&nrf24, (uint8_t *)&packet3, 32, false);
-			//nrf24_fifo_write(&nrf24, (uint8_t *)&packet3, 32, false);
 			HAL_Delay(1);
 			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 			nrf_state = NRF_STATE_PACK1;
+			packet_wait_deadline = now + packet_wait_period;
 			break;
+
 		case NRF_STATE_WAIT:
 			break;
 		}
+
 		int i = 0;
 		for (i = 0; i < 8 ; i++)
 		{
@@ -605,7 +590,7 @@ void appmain()
 					Glider_Angle(180);
 					state = FLIGHT;
 					timeOJ = HAL_GetTick();
-					//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
+					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
 
 				}
 				break;
@@ -616,7 +601,7 @@ void appmain()
 
 				if (timeOJ + 1000 < HAL_GetTick())
 				{
-					//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
+
 					state = DESCEND_SAS_MODE;
 				}
 
@@ -625,23 +610,30 @@ void appmain()
 
 			case DESCEND_SAS_MODE:
 			{
-				if (altitude < 1)
+				if (altitude < 150)
 				{
-					state = RETURN_TO_GROUND;
 					timeOJ = HAL_GetTick();
+					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
+					state = RETURN_TO_GROUND;
+
 				}
 				break;
 			}
 
 			case RETURN_TO_GROUND:
 			{
+				if (timeOJ + 1000 < HAL_GetTick())
+				{
+					HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
+				}
+
 				if (timeOJ + 2000 < HAL_GetTick())
 				{
 					HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_9);
 				}
 				break;
 			}
-				//Включитьь пьезодинамикс
+
 
 		}
 

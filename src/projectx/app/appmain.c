@@ -1,21 +1,3 @@
-/*
-* APPMAIN ДЛЯ МА (МАТЕРИНСКИЙ АППАРАТ)
-*
-* НАЧАЛО РАЗРАБОТКИ 27.09.2025
-*
-* ПРОГРЕСС РАЗРАБОТКИ:
-*
-* BME280(75%) - перенес
-* LIS3MDL (НЕ НАЧАТО)   - перенес
-* LDM6DS3 (НЕ НАЧАТО)   - перенес
-* E220400T22S - ПЕРЕНЕС
-* SD-CARD
-* NEO-8M перенес.
-*
-* пиво
-*
-*
-*/
 
 #include <stm32f4xx.h>
 
@@ -28,26 +10,24 @@
 
 // INCLUDE ДАТЧИКОВ
 
-#include "bmp280/bmp.h" // датчик bme280 (I2C)
-#include "lis3mdl\lis3mdl.h" // датчик lis3mdl (I2C)
-#include "lsm6ds3\lsm6ds3.h" // датчик lsm6ds3 (I2C)
+#include "bmp280/bmp.h"
+#include "lis3mdl\lis3mdl.h"
+#include "lsm6ds3\lsm6ds3.h"
 
-#include "resistor\resistor.h" // фоторезистор (ADC)
+#include "resistor\resistor.h"
 
 #include "fatfs.h"
-//#include "fatfs_sd\fatfs_sd.h" // micro sd (SPI)
-//#include "..\Middlewares\Third_Party\FatFs\src\ff.h" // micro sd (SPI)
+
 
 #include "e220400t22s/e220_400t22s.h" // радио (UART)
 #include "nRF24L01_PL/nrf24_upper_api.h"
 #include "nRF24L01_PL/nrf24_lower_api.h"
 #include "nRF24L01_PL/nrf24_lower_api_stm32.h"
 
-#include "neo6mv2\neo6mv2.h" // датчик gps (UART)
+#include "neo6mv2\neo6mv2.h"
 
-#include "dwt_delay.h" // тайминги
+#include "dwt_delay.h"
 
-// ОБРАБОТЧИКИ
 extern ADC_HandleTypeDef hadc1;
 extern I2C_HandleTypeDef hi2c1;
 extern UART_HandleTypeDef huart2;
@@ -55,8 +35,8 @@ extern UART_HandleTypeDef huart1;
 extern SPI_HandleTypeDef hspi1;
 
 
-// структура для хранения и передачи телеметрии
-#pragma pack(push, 1) // Обращение к компилятору не выравнивать структуру и хранить её в памяти без пустых байтов
+
+#pragma pack(push, 1)
 typedef struct{
 	uint8_t start;
 	uint16_t number_packet;
@@ -84,8 +64,7 @@ typedef struct{
 	uint16_t checksum_knpn;
 } packet_t;
 
-#pragma pack(pop) // Компилятор может добавлять выравнивающие байты для оптимизации работы процессора
-
+#pragma pack(pop)
 typedef enum
 {
 	PREPARATION,
@@ -125,11 +104,11 @@ void appmain(){
 
 	int i;
 
-	// Создал пакет
+
 	packet_t packet = {0};
-	packet.team_id = 0xD9; // тим айди
-	packet.start = 0xAA; // Флаг пакета
-	packet.number_packet = 0; // Номер пакета
+	packet.team_id = 0xD9;
+	packet.start = 0xAA;
+	packet.number_packet = 0;
 
 
 	// bme280
@@ -138,7 +117,7 @@ void appmain(){
 
 
 	// LSM6DS3
-	int16_t temp_gyro[3] = {0}; // temp = ВРЕМЕННО!
+	int16_t temp_gyro[3] = {0};
 	int16_t temp_accel[3] = {0};
 	stmdev_ctx_t lsm;
 	lsm_init(&lsm, &hi2c1);
@@ -150,10 +129,10 @@ void appmain(){
 
 
 	// sd
-	FATFS fileSystem; // переменная типа FATFS
+	FATFS fileSystem;
 	FIL binFile;
-	//csvFile; // хендлер файла
-    UINT testBytes;  // Количество записанных байт
+
+    UINT testBytes;
     FRESULT mount_res = 255;
     FRESULT bin_res = 255;
     uint8_t bin_path[] = "knpn.bin\0";
@@ -204,7 +183,7 @@ void appmain(){
     uint8_t bufdoc[3][32]={0};
 
     mother_state_t state = PREPARATION;
-    //neo6mv2
+
     neo6mv2_Init();
     __HAL_UART_ENABLE_IT(&huart1, UART_IT_RXNE);
     __HAL_UART_ENABLE_IT(&huart1, UART_IT_ERR);
@@ -260,6 +239,7 @@ void appmain(){
 
 	while(1){
 
+
 		megalux(&hadc1, &result);
 
 		packet.photoresistor = result*1000;
@@ -295,16 +275,10 @@ void appmain(){
 			HAL_Delay(1);
 		}
 
-		//if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_2) == GPIO_PIN_SET)
-		//{
-			//HAL_Delay(100);
-			//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_SET);
-			//HAL_Delay(100);
-			//HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_RESET);
-		//}
+
 
 		// bme280
-		bme280_get_sensor_data(BME280_ALL, &data, &bme); // вывод давления и температуры
+		bme280_get_sensor_data(BME280_ALL, &data, &bme);
 		packet.pressure_bme280 = data.pressure;
 		packet.temp_bme280 = data.temperature * 100;
 		packet.humidity_bme280 = data.humidity * 100;
@@ -328,7 +302,7 @@ void appmain(){
 		packet.lis3mdl_y = temp_magn[1];
 		packet.lis3mdl_z = temp_magn[2];
 
-// фоторезистор
+
 
 
 
@@ -409,7 +383,7 @@ void appmain(){
 		 	}
 		  	case DESCEND_MODE:
 		  	{
-		  		if (altitude < 1)
+		  		if (altitude < 700)
 		  		{
 		  			state = UNDOCKING;
 		  			timeOJ = HAL_GetTick();
@@ -430,7 +404,7 @@ void appmain(){
 
 		  	case RETURN_TO_GROUND:
 		  	{
-		  		if (altitude < 0.5)
+		  		if (altitude < 150)
 		  		{
 		  			state = TOUCHING_THE_GROUND;
 		  			timeOJ = HAL_GetTick();
