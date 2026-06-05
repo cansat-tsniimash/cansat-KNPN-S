@@ -330,6 +330,7 @@ void appmain(){
 
 		if (mount_res == FR_OK && bin_res == FR_OK)
 		{
+			bin_res = f_write(&binFile, (uint8_t*)&bufdoc, sizeof(bufdoc), &testBytes);
 			bin_res = f_write(&binFile, (uint8_t*)&packet, sizeof(packet_t), &testBytes);
 			f_sync(&binFile);
 		}

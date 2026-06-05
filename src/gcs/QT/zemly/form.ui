@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>zemla</class>
+ <widget class="QMainWindow" name="zemla">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>806</width>
+    <height>588</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>zemla</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="5" column="2">
+     <spacer name="horizontalSpacer_2">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="7" column="2" colspan="2">
+     <widget class="PlotWidget" name="graph" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+     </widget>
+    </item>
+    <item row="7" column="0">
+     <widget class="mymodel" name="model" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="0">
+     <widget class="QTreeWidget" name="treeWidget">
+      <column>
+       <property name="text">
+        <string>Пакет 1</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>Пакет 4</string>
+       </property>
+      </column>
+      <item>
+       <property name="text">
+        <string>Пакет МА</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <item>
+        <property name="text">
+         <string>Номер</string>
+        </property>
+        <property name="text">
+         <string>0</string>
+        </property>
+       </item>
+      </item>
+      <item>
+       <property name="text">
+        <string>Новый элемент</string>
+       </property>
+      </item>
+     </widget>
+    </item>
+    <item row="4" column="2">
+     <widget class="PlotWidget" name="graph2" native="true"/>
+    </item>
+    <item row="4" column="1">
+     <widget class="PlotWidget" name="graph3" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+     </widget>
+    </item>
+    <item row="7" column="1">
+     <widget class="PlotWidget" name="graph4" native="true"/>
+    </item>
+    <item row="0" column="0">
+     <widget class="QPushButton" name="pushButton">
+      <property name="text">
+       <string>страница 2</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>806</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actiontest"/>
+   </widget>
+   <addaction name="menuFile"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actiontest">
+   <property name="text">
+    <string>test</string>
+   </property>
+  </action>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>PlotWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">plotwidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>mymodel</class>
+   <extends>QWidget</extends>
+   <header location="global">mymodel.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>
