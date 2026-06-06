@@ -15,6 +15,19 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
+    <item row="4" column="2">
+     <widget class="PlotWidget" name="graph2" native="true"/>
+    </item>
+    <item row="7" column="1">
+     <widget class="PlotWidget" name="graph4" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+     </widget>
+    </item>
     <item row="5" column="2">
      <spacer name="horizontalSpacer_2">
       <property name="orientation">
@@ -28,16 +41,6 @@
       </property>
      </spacer>
     </item>
-    <item row="7" column="2" colspan="2">
-     <widget class="PlotWidget" name="graph" native="true">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-     </widget>
-    </item>
     <item row="7" column="0">
      <widget class="mymodel" name="model" native="true">
       <property name="sizePolicy">
@@ -48,43 +51,38 @@
       </property>
      </widget>
     </item>
-    <item row="4" column="0">
-     <widget class="QTreeWidget" name="treeWidget">
-      <column>
-       <property name="text">
-        <string>Пакет 1</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>Пакет 4</string>
-       </property>
-      </column>
-      <item>
-       <property name="text">
-        <string>Пакет МА</string>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <item>
-        <property name="text">
-         <string>Номер</string>
-        </property>
-        <property name="text">
-         <string>0</string>
-        </property>
-       </item>
-      </item>
-      <item>
-       <property name="text">
-        <string>Новый элемент</string>
-       </property>
-      </item>
+    <item row="7" column="2" colspan="2">
+     <widget class="PlotWidget" name="graph" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
      </widget>
     </item>
-    <item row="4" column="2">
-     <widget class="PlotWidget" name="graph2" native="true"/>
+    <item row="8" column="1">
+     <widget class="PlotWidget" name="graph5" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+     </widget>
+    </item>
+    <item row="8" column="2">
+     <widget class="PlotWidget" name="graph6" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+     </widget>
+    </item>
+    <item row="8" column="0">
+     <widget class="QCalendarWidget" name="calendarWidget"/>
     </item>
     <item row="4" column="1">
      <widget class="PlotWidget" name="graph3" native="true">
@@ -96,15 +94,15 @@
       </property>
      </widget>
     </item>
-    <item row="7" column="1">
-     <widget class="PlotWidget" name="graph4" native="true"/>
-    </item>
-    <item row="0" column="0">
+    <item row="1" column="0">
      <widget class="QPushButton" name="pushButton">
       <property name="text">
        <string>страница 2</string>
       </property>
      </widget>
+    </item>
+    <item row="4" column="0">
+     <widget class="QTableWidget" name="packet"/>
     </item>
    </layout>
   </widget>
