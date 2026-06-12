@@ -224,14 +224,14 @@ class DataManager(QObject):
 
 
             elif flug_cond == 0xBB:
-                data = struct.unpack("<BHI9hBH", data)
+                datada1 = struct.unpack("<BHI9hBH", datada1)
 
             elif flug_cond == 0xCC:
-                data = struct.unpack("<BHI3fB2H", data)
+                datada2 = struct.unpack("<BHI3fB2H", datada2)
 
 
             elif flug_cond == 0xDD:
-                data = struct.unpack("<BH3I2h3HBH", data)
+                datada3 = struct.unpack("<BH3I2h3HBH", datada3)
 
             else:
                 print ("!")
@@ -347,6 +347,33 @@ class zemla(QMainWindow):
         self.ui.graph6.setAxisItems({"bottom":axis_x, "left":axis_y})
         self.graph6_list = [self.ui.graph6.plot()]
 
+        self.ui.show()
+        self.data_manager.MA.connect(self.setdatapachet)
+        axis_x = pg.AxisItem("bottom")
+        axis_x.setLabel("time (секунды)")
+        axis_y = pg.AxisItem("left")
+        axis_y.setLabel("alt (метры)")
+        self.ui.graphda2.setAxisItems({"bottom":axis_x, "left":axis_y})
+        self.graphda2_list = [self.ui.graphda2.plot()]
+
+        self.ui.show()
+        self.data_manager.MA.connect(self.setdatapachet)
+        axis_x = pg.AxisItem("bottom")
+        axis_x.setLabel("time (секунды)")
+        axis_y = pg.AxisItem("left")
+        axis_y.setLabel("GYR (Градусы в секунду)")
+        self.ui.graphda1.setAxisItems({"bottom":axis_x, "left":axis_y})
+        self.graphda1_list = [self.ui.graphda1.plot(), self.ui.graphda1.plot(), self.ui.graphda1.plot()]
+
+
+        self.ui.show()
+        self.data_manager.MA.connect(self.setdatapachet)
+        axis_x = pg.AxisItem("bottom")
+        axis_x.setLabel("time (секунды)")
+        axis_y = pg.AxisItem("left")
+        axis_y.setLabel("ACC (G)")
+        self.ui.graphda3.setAxisItems({"bottom":axis_x, "left":axis_y})
+        self.graphda3_list = [self.ui.graphda3.plot(), self.ui.graphda3.plot(), self.ui.graphda3.plot()]
 
 
     def plot_data_upload(self, plot, x, y):
@@ -357,7 +384,6 @@ class zemla(QMainWindow):
         x = numpy.append(newX, x)
         y = numpy.append(newY, y)
         plot.setData(x , y)
-ы
 
     def load_ui(self):
         loader = UiLoader()
@@ -396,6 +422,26 @@ class zemla(QMainWindow):
         self.plot_data_upload(self.graph4_list[0], data[3], data[7])
         self.plot_data_upload(self.graph4_list[1], data[3], data[8])
         self.plot_data_upload(self.graph4_list[2], data[3], data[9])
+
+        self.plot_data_upload(self.graphda2_list[2], datada1[2], datada3[9])
+
+        self.graphda1_list[0].setPen(pg.mkPen(color='w', width=2))  # белый
+        self.graphda1_list[1].setPen(pg.mkPen(color='g', width=2))  # зеленый
+        self.graphda1_list[2].setPen(pg.mkPen(color='r', width=2))  # красный
+        self.plot_data_upload(self.graphda1_list[0], datada1[2], datada1[3])
+        self.plot_data_upload(self.graphda1_list[1], datada1[2], datada1[4])
+        self.plot_data_upload(self.graphda1_list[2], datada1[2], datada1[5])
+
+        self.graphda3_list[0].setPen(pg.mkPen(color='y', width=2))  # белый
+        self.graphda3_list[1].setPen(pg.mkPen(color='g', width=2))  # зеленый
+        self.graphda3_list[2].setPen(pg.mkPen(color='r', width=2))  # красный
+        self.plot_data_upload(self.graphda3_list[0], datada1[2], datada1[6])
+        self.plot_data_upload(self.graphda3_list[1], datada1[2], datada1[7])
+        self.plot_data_upload(self.graphda3_list[2], datada1[2], datada1[8])
+
+
+
+
 
 if __name__ == "__main__":
     app = QApplication([])
