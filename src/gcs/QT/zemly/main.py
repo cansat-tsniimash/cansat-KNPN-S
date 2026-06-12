@@ -15,6 +15,167 @@ from PySide6.QtUiTools import QUiLoader
 from PySide6.QtGui import QPen, Qt
 
 
+class MadgwickAHRS:
+    def __init__(self, beta=0.1):
+        self.beta = beta
+
+        # q0, q1, q2, q3 == w, x, y, z
+        self.quaternion = [1.0, 0.0, 0.0, 0.0]
+
+    @staticmethod
+    def inv_sqrt(x):
+        return 1.0 / math.sqrt(x)
+
+    def update_imu(self, gx, gy, gz, ax, ay, az, dt):
+        q0, q1, q2, q3 = self.quaternion
+        beta = self.beta
+
+        q_dot1 = 0.5 * (-q1 * gx - q2 * gy - q3 * gz)
+        q_dot2 = 0.5 * ( q0 * gx + q2 * gz - q3 * gy)
+        q_dot3 = 0.5 * ( q0 * gy - q1 * gz + q3 * gx)
+        q_dot4 = 0.5 * ( q0 * gz + q1 * gy - q2 * gx)
+
+        if not (ax == 0.0 and ay == 0.0 and az == 0.0):
+            recip_norm = self.inv_sqrt(ax * ax + ay * ay + az * az)
+            ax *= recip_norm
+            ay *= recip_norm
+            az *= recip_norm
+
+            _2q0 = 2.0 * q0
+            _2q1 = 2.0 * q1
+            _2q2 = 2.0 * q2
+            _2q3 = 2.0 * q3
+            _4q0 = 4.0 * q0
+            _4q1 = 4.0 * q1
+            _4q2 = 4.0 * q2
+            _8q1 = 8.0 * q1
+            _8q2 = 8.0 * q2
+
+            q0q0 = q0 * q0
+            q1q1 = q1 * q1
+            q2q2 = q2 * q2
+            q3q3 = q3 * q3
+
+            s0 = _4q0 * q2q2 + _2q2 * ax + _4q0 * q1q1 - _2q1 * ay
+            s1 = (_4q1 * q3q3 - _2q3 * ax + 4.0 * q0q0 * q1 - _2q0 * ay - _4q1 + _8q1 * q1q1 + _8q1 * q2q2 + _4q1 * az)
+            s2 = (4.0 * q0q0 * q2 + _2q0 * ax + _4q2 * q3q3 - _2q3 * ay - _4q2 + _8q2 * q1q1 + _8q2 * q2q2 + _4q2 * az)
+            s3 = (4.0 * q1q1 * q3 - _2q1 * ax + 4.0 * q2q2 * q3 - _2q2 * ay)
+
+            norm = s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3
+            if norm != 0.0:
+                recip_norm = self.inv_sqrt(norm)
+                s0 *= recip_norm
+                s1 *= recip_norm
+                s2 *= recip_norm
+                s3 *= recip_norm
+
+                q_dot1 -= beta * s0
+                q_dot2 -= beta * s1
+                q_dot3 -= beta * s2
+                q_dot4 -= beta * s3
+
+        q0 += q_dot1 * dt
+        q1 += q_dot2 * dt
+        q2 += q_dot3 * dt
+        q3 += q_dot4 * dt
+
+        recip_norm = self.inv_sqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3)
+
+        self.quaternion = [q0 * recip_norm, q1 * recip_norm, q2 * recip_norm, q3 * recip_norm,]
+
+        return self.quaternion
+
+    def update(self, gx, gy, gz, ax, ay, az, mx, my, mz, dt):
+        if mx == 0.0 and my == 0.0 and mz == 0.0:
+            return self.update_imu(gx, gy, gz, ax, ay, az, dt)
+
+        q0, q1, q2, q3 = self.quaternion
+        beta = self.beta
+
+        q_dot1 = 0.5 * (-q1 * gx - q2 * gy - q3 * gz)
+        q_dot2 = 0.5 * ( q0 * gx + q2 * gz - q3 * gy)
+        q_dot3 = 0.5 * ( q0 * gy - q1 * gz + q3 * gx)
+        q_dot4 = 0.5 * ( q0 * gz + q1 * gy - q2 * gx)
+
+        if not (ax == 0.0 and ay == 0.0 and az == 0.0):
+            recip_norm = self.inv_sqrt(ax * ax + ay * ay + az * az)
+            ax *= recip_norm
+            ay *= recip_norm
+            az *= recip_norm
+
+            recip_norm = self.inv_sqrt(mx * mx + my * my + mz * mz)
+            mx *= recip_norm
+            my *= recip_norm
+            mz *= recip_norm
+
+            _2q0mx = 2.0 * q0 * mx
+            _2q0my = 2.0 * q0 * my
+            _2q0mz = 2.0 * q0 * mz
+            _2q1mx = 2.0 * q1 * mx
+
+            _2q0 = 2.0 * q0
+            _2q1 = 2.0 * q1
+            _2q2 = 2.0 * q2
+            _2q3 = 2.0 * q3
+
+            q0q0 = q0 * q0
+            q0q1 = q0 * q1
+            q0q2 = q0 * q2
+            q0q3 = q0 * q3
+            q1q1 = q1 * q1
+            q1q2 = q1 * q2
+            q1q3 = q1 * q3
+            q2q2 = q2 * q2
+            q2q3 = q2 * q3
+            q3q3 = q3 * q3
+
+            hx = (mx * q0q0 - _2q0my * q3 + _2q0mz * q2 + mx * q1q1 + _2q1 * my * q2 + _2q1 * mz * q3 - mx * q2q2 - mx * q3q3)
+
+            hy = (_2q0mx * q3 + my * q0q0 - _2q0mz * q1 + _2q1mx * q2 - my * q1q1 + my * q2q2 + _2q2 * mz * q3 - my * q3q3)
+
+            _2bx = math.sqrt(hx * hx + hy * hy)
+
+            _2bz = (-_2q0mx * q2 + _2q0my * q1 + mz * q0q0 + _2q1mx * q3 - mz * q1q1 + _2q2 * my * q3 - mz * q2q2 + mz * q3q3)
+
+            _4bx = 2.0 * _2bx
+            _4bz = 2.0 * _2bz
+            _8bx = 2.0 * _4bx
+            _8bz = 2.0 * _4bz
+
+            s0 = (-_2q2 * (2.0 * (q1q3 - q0q2) - ax) + _2q1 * (2.0 * (q0q1 + q2q3) - ay) - _4bz * q2 * (_4bx * (0.5 - q2q2 - q3q3) + _4bz * (q1q3 - q0q2) - mx) + (-_4bx * q3 + _4bz * q1) * (_4bx * (q1q2 - q0q3) + _4bz * (q0q1 + q2q3) - my) + _4bx * q2 * (_4bx * (q0q2 + q1q3) + _4bz * (0.5 - q1q1 - q2q2) - mz))
+
+            s1 = (_2q3 * (2.0 * (q1q3 - q0q2) - ax) + _2q0 * (2.0 * (q0q1 + q2q3) - ay) - 4.0 * q1 * (2.0 * (0.5 - q1q1 - q2q2) - az) + _4bz * q3 * (_4bx * (0.5 - q2q2 - q3q3) + _4bz * (q1q3 - q0q2) - mx) + (_4bx * q2 + _4bz * q0) * (_4bx * (q1q2 - q0q3) + _4bz * (q0q1 + q2q3) - my) + (_4bx * q3 - _8bz * q1) * (_4bx * (q0q2 + q1q3) + _4bz * (0.5 - q1q1 - q2q2) - mz))
+
+            s2 = (-_2q0 * (2.0 * (q1q3 - q0q2) - ax) + _2q3 * (2.0 * (q0q1 + q2q3) - ay) - 4.0 * q2 * (2.0 * (0.5 - q1q1 - q2q2) - az) + (-_8bx * q2 - _4bz * q0) * (_4bx * (0.5 - q2q2 - q3q3) + _4bz * (q1q3 - q0q2) - mx) + (_4bx * q1 + _4bz * q3) * (_4bx * (q1q2 - q0q3) + _4bz * (q0q1 + q2q3) - my) + (_4bx * q0 - _8bz * q2) * (_4bx * (q0q2 + q1q3) + _4bz * (0.5 - q1q1 - q2q2) - mz))
+
+            s3 = (_2q1 * (2.0 * (q1q3 - q0q2) - ax) + _2q2 * (2.0 * (q0q1 + q2q3) - ay) + (-_8bx * q3 + _4bz * q1) * (_4bx * (0.5 - q2q2 - q3q3) + _4bz * (q1q3 - q0q2) - mx) + (-_4bx * q0 + _4bz * q2) * (_4bx * (q1q2 - q0q3) + _4bz * (q0q1 + q2q3) - my) + (_4bx * q1) * (_4bx * (q0q2 + q1q3) + _4bz * (0.5 - q1q1 - q2q2) - mz))
+
+            norm = s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3
+            if norm != 0.0:
+                recip_norm = self.inv_sqrt(norm)
+                s0 *= recip_norm
+                s1 *= recip_norm
+                s2 *= recip_norm
+                s3 *= recip_norm
+
+                q_dot1 -= beta * s0
+                q_dot2 -= beta * s1
+                q_dot3 -= beta * s2
+                q_dot4 -= beta * s3
+
+        q0 += q_dot1 * dt
+        q1 += q_dot2 * dt
+        q2 += q_dot3 * dt
+        q3 += q_dot4 * dt
+
+        recip_norm = self.inv_sqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3)
+
+        self.quaternion = [q0 * recip_norm, q1 * recip_norm, q2 * recip_norm, q3 * recip_norm,]
+
+        return self.quaternion
+
+    def get_quat(self):
+        return self.quaternion
 
 class DataManager(QObject):
     def crc16(data : bytearray, offset=0, length=-1):
@@ -59,74 +220,19 @@ class DataManager(QObject):
             if flug_cond == 0xAA:
                 data = struct.unpack("<B2HI9hIh2H3fBHBH", data[:55])
                 self.MA.emit(data)
+                quaternion = madgwick.update(gx, gy, gz, data[7], data[8], az, mx, my, mz, dt)
+
 
             elif flug_cond == 0xBB:
                 data = struct.unpack("<BHI9hBH", data)
-                print ("flug", unpack_data[0])
-                print ("Number", unpack_data[1])
-                print ("Time_ms", unpack_data[2])
 
-                for i in range(3):
-                   unpack_data[3 + i] = unpack_data[3 + i]*70/1000
-                print ("Gyroscope x", unpack_data[3])
-                print ("Gyroscope y", unpack_data[4])
-                print ("Gyroscope z", unpack_data[5])
-                for i in range(3):
-                   unpack_data[6 + i] = unpack_data[6 + i]*488/1000/1000
-                print ("Accelerometer x", unpack_data[6])
-                print ("Accelerometer y", unpack_data[7])
-                print ("Accelerometer z", unpack_data[8])
-                for i in range(3):
-                   unpack_data[9 + i] = unpack_data[9 + i]/1711
-                print ("Magnetometer x", unpack_data[9])
-                print ("Magnetometer y", unpack_data[10])
-                print ("Magnetometer z", unpack_data[11])
-         #   print ("Gyroscope x", unpack_data[4])
-         #   print ("Gyroscope y", unpack_data[5])
-         #   print ("Gyroscope z", unpack_data[6])
-         #   print ("Accelerometer x", unpack_data[7])
-         #   print ("Accelerometer y", unpack_data[8])
-         #   print ("Accelerometer z", unpack_data[9])
-         #   print ("Magnetometer x", unpack_data[10])
-         #   print ("Magnetometer y", unpack_data[11])
-         #   print ("Magnetometer z", unpack_data[12])
-
-                print ("Status", unpack_data[12])
-                print ("crc", unpack_data[13])
             elif flug_cond == 0xCC:
                 data = struct.unpack("<BHI3fB2H", data)
-                print ("flug", unpack_data[0])
-                print ("Number", unpack_data[1])
-                print ("Time_ms", unpack_data[2])
 
-                print ("GPS_lat", unpack_data[3])
-                print ("GPS_lon", unpack_data[4])
-                print ("GPS_height", unpack_data[5])
-                print ("GPS_fix", unpack_data[6])
-
-                print ("Photo", unpack_data[7])
-                print ("crc", unpack_data[8])
 
             elif flug_cond == 0xDD:
                 data = struct.unpack("<BH3I2h3HBH", data)
-                print ("flug", unpack_data[0])
-                print ("Number", unpack_data[1])
-                print ("Time_ms", unpack_data[2])
 
-                print ("Bme_press_1", unpack_data[3])
-                print ("Bme_press_2", unpack_data[4])
-                for i in range(2):
-                    unpack_data[5 + i] = unpack_data[5 + i]/100
-                print ("Bme_temp_1", unpack_data[5])
-                print ("Bme_temp_2", unpack_data[6])
-                for i in range(2):
-                    unpack_data[7 + i] = unpack_data[7 + i]/10
-                print ("Bme_humidity_1", unpack_data[7])
-                print ("Bme_humidity_2", unpack_data[8])
-                print ("Bme_height", unpack_data[9])
-
-                print ("Pito_speed", unpack_data[10])
-                print ("crc", unpack_data[11])
             else:
                 print ("!")
                 data = data[1:]
@@ -189,7 +295,7 @@ class zemla(QMainWindow):
         self.ui.show()
         self.data_manager.MA.connect(self.setdatapachet)
         axis_x = pg.AxisItem("bottom")
-        axis_x.setLabel("time")
+        axis_x.setLabel("time (секунды)")
         axis_y = pg.AxisItem("left")
         axis_y.setLabel("alt (метры)")
         self.ui.graph.setAxisItems({"bottom":axis_x, "left":axis_y})
@@ -251,7 +357,7 @@ class zemla(QMainWindow):
         x = numpy.append(newX, x)
         y = numpy.append(newY, y)
         plot.setData(x , y)
-
+ы
 
     def load_ui(self):
         loader = UiLoader()
@@ -284,7 +390,7 @@ class zemla(QMainWindow):
         self.plot_data_upload(self.graph5_list[1], data[3], data[5])
         self.plot_data_upload(self.graph5_list[2], data[3], data[6])
 
-        self.graph4_list[0].setPen(pg.mkPen(color='w', width=2))  # оливковый
+        self.graph4_list[0].setPen(pg.mkPen(color='w', width=2))  # белый
         self.graph4_list[1].setPen(pg.mkPen(color='g', width=2))  # зеленый
         self.graph4_list[2].setPen(pg.mkPen(color='r', width=2))  # красный
         self.plot_data_upload(self.graph4_list[0], data[3], data[7])

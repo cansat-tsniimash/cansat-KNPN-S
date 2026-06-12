@@ -15,11 +15,8 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
-    <item row="4" column="2">
-     <widget class="PlotWidget" name="graph2" native="true"/>
-    </item>
-    <item row="7" column="1">
-     <widget class="PlotWidget" name="graph4" native="true">
+    <item row="6" column="2" colspan="2">
+     <widget class="PlotWidget" name="graph" native="true">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
         <horstretch>0</horstretch>
@@ -28,7 +25,20 @@
       </property>
      </widget>
     </item>
-    <item row="5" column="2">
+    <item row="3" column="1">
+     <widget class="PlotWidget" name="graph3" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="0">
+     <widget class="QTableWidget" name="packet"/>
+    </item>
+    <item row="4" column="2">
      <spacer name="horizontalSpacer_2">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -41,37 +51,10 @@
       </property>
      </spacer>
     </item>
-    <item row="7" column="0">
-     <widget class="mymodel" name="model" native="true">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-     </widget>
+    <item row="3" column="2">
+     <widget class="PlotWidget" name="graph2" native="true"/>
     </item>
-    <item row="7" column="2" colspan="2">
-     <widget class="PlotWidget" name="graph" native="true">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-     </widget>
-    </item>
-    <item row="8" column="1">
-     <widget class="PlotWidget" name="graph5" native="true">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-     </widget>
-    </item>
-    <item row="8" column="2">
+    <item row="7" column="2">
      <widget class="PlotWidget" name="graph6" native="true">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -81,11 +64,8 @@
       </property>
      </widget>
     </item>
-    <item row="8" column="0">
-     <widget class="QCalendarWidget" name="calendarWidget"/>
-    </item>
-    <item row="4" column="1">
-     <widget class="PlotWidget" name="graph3" native="true">
+    <item row="6" column="0">
+     <widget class="mymodel" name="model" native="true">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
         <horstretch>0</horstretch>
@@ -94,15 +74,28 @@
       </property>
      </widget>
     </item>
-    <item row="1" column="0">
-     <widget class="QPushButton" name="pushButton">
-      <property name="text">
-       <string>страница 2</string>
+    <item row="7" column="1">
+     <widget class="PlotWidget" name="graph5" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
       </property>
      </widget>
     </item>
-    <item row="4" column="0">
-     <widget class="QTableWidget" name="packet"/>
+    <item row="7" column="0">
+     <widget class="QCalendarWidget" name="calendarWidget"/>
+    </item>
+    <item row="6" column="1">
+     <widget class="PlotWidget" name="graph4" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>
@@ -121,7 +114,13 @@
     </property>
     <addaction name="actiontest"/>
    </widget>
+   <widget class="QMenu" name="menuzemly">
+    <property name="title">
+     <string>zemly</string>
+    </property>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuzemly"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actiontest">

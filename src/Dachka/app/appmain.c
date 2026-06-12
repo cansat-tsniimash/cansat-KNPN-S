@@ -366,7 +366,9 @@ void appmain()
 
 
 
-	Glider_Angle(0);
+
+
+	Glider_Angle(180);
 
 	state = PREPARATION;
 
