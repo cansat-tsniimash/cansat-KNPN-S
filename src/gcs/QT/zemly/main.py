@@ -158,6 +158,7 @@ class zemla(QMainWindow):
         self.ui.graph.setAxisItems({"bottom":axis_x, "left":axis_y})
         self.graph_list = [self.ui.graph.plot()]
 
+
         axis_x = pg.AxisItem("bottom")
         axis_x.setLabel("time (секунды)")
         axis_y = pg.AxisItem("left")
@@ -214,7 +215,6 @@ class zemla(QMainWindow):
         self.graphda1_list = [self.ui.graphda1.plot(), self.ui.graphda1.plot(), self.ui.graphda1.plot()]
 
 
-
         axis_x = pg.AxisItem("bottom")
         axis_x.setLabel("ДА time (секунды)")
         axis_y = pg.AxisItem("left")
@@ -241,12 +241,17 @@ class zemla(QMainWindow):
         ui_file.close()
 
     def setdatapachet(self, data):
+
+
         self.ui.packet.setItem(0 , 0 , QTableWidgetItem(str(data[0])))
         self.ui.packet.setItem(1 , 0 , QTableWidgetItem(str(data[1])))
 
+
         self.plot_data_upload(self.graph_list[0], data[3], data[16])
 
+
         self.plot_data_upload(self.graph2_list[0], data[3], data[14])
+
 
         self.graph3_list[0].setPen(pg.mkPen(color='b', width=2))  # синий
         self.graph3_list[1].setPen(pg.mkPen(color='g', width=2))  # зеленый
@@ -263,6 +268,7 @@ class zemla(QMainWindow):
         self.plot_data_upload(self.graph5_list[1], data[3], data[5])
         self.plot_data_upload(self.graph5_list[2], data[3], data[6])
 
+
         self.graph4_list[0].setPen(pg.mkPen(color='w', width=2))  # белый
         self.graph4_list[1].setPen(pg.mkPen(color='g', width=2))  # зеленый
         self.graph4_list[2].setPen(pg.mkPen(color='r', width=2))  # красный
@@ -272,6 +278,7 @@ class zemla(QMainWindow):
 
     def setda1pachet(self, datada1):
 
+
         self.graphda1_list[0].setPen(pg.mkPen(color='w', width=2))  # белый
         self.graphda1_list[1].setPen(pg.mkPen(color='g', width=2))  # зеленый
         self.graphda1_list[2].setPen(pg.mkPen(color='r', width=2))  # красный
@@ -279,13 +286,17 @@ class zemla(QMainWindow):
         self.plot_data_upload(self.graphda1_list[1], datada1[2], datada1[4])
         self.plot_data_upload(self.graphda1_list[2], datada1[2], datada1[5])
 
+
         self.graphda3_list[0].setPen(pg.mkPen(color='y', width=2))  # белый
         self.graphda3_list[1].setPen(pg.mkPen(color='g', width=2))  # зеленый
         self.graphda3_list[2].setPen(pg.mkPen(color='r', width=2))  # красный
         self.plot_data_upload(self.graphda3_list[0], datada1[2], datada1[6])
         self.plot_data_upload(self.graphda3_list[1], datada1[2], datada1[7])
         self.plot_data_upload(self.graphda3_list[2], datada1[2], datada1[8])
+
     def setda3pachet(self, datada3):
+
+
         self.plot_data_upload(self.graphda2_list[0], datada3[2], datada3[9])
 
 
