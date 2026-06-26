@@ -151,7 +151,7 @@ void appmain(){
     nrf24_mode_standby(&nrf24);
 
     nrf24_rf_config_t nrf24_conf;
-    nrf24_conf.data_rate = NRF24_DATARATE_250_KBIT;
+    nrf24_conf.data_rate = NRF24_DATARATE_1000_KBIT;
     nrf24_conf.tx_power = NRF24_TXPOWER_MINUS_0_DBM;
     nrf24_conf.rf_channel = 0;
     nrf24_setup_rf(&nrf24, &nrf24_conf);

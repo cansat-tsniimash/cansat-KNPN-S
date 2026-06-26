@@ -207,7 +207,7 @@ void appmain()
 	nrf24_mode_standby(&nrf24);
 
 	nrf24_rf_config_t nrf24_conf;
-	nrf24_conf.data_rate = NRF24_DATARATE_250_KBIT;
+	nrf24_conf.data_rate = NRF24_DATARATE_1000_KBIT;
 	nrf24_conf.tx_power = NRF24_TXPOWER_MINUS_6_DBM;
 	nrf24_conf.rf_channel = 0;
 	nrf24_setup_rf(&nrf24, &nrf24_conf);
@@ -298,6 +298,7 @@ void appmain()
 	bmp_bus2.hi2c1 = &hi2c1;
 	bmp280_2.intf_ptr = &bmp_bus2;
 
+	HAL_Delay(1000);
 	bme280_init(&bmp280_2);
 	bme280_set_sensor_settings(BME280_ALL_SETTINGS_SEL, &bmp280_2);
 	bme280_set_sensor_mode(BME280_NORMAL_MODE, &bmp280_2);
@@ -351,8 +352,15 @@ void appmain()
 	FRESULT result_packet = 255;
 	UINT byte_count;
 
-	bme280_get_sensor_data(BME280_ALL, &bmp_data2, &bmp280_2);
+	HAL_Delay(1000);
+
+	bme280_get_sensor_data(BME280_ALL, &bmp_data1, &bmp280_1);
 	float first_pres = bmp_data1.pressure;
+	if (first_pres < 90000)
+	{
+		bme280_get_sensor_data(BME280_ALL, &bmp_data1, &bmp280_1);
+		first_pres = bmp_data1.pressure;
+	}
 
 	uint16_t photo = 0;
 
@@ -361,6 +369,8 @@ void appmain()
 	uint8_t Speed = 0;
 
 	uint32_t timeOJ;
+	uint32_t timecyc = 0;
+	uint32_t timecyc2 = 0;
 
 
 
@@ -370,12 +380,15 @@ void appmain()
 
 	state = PREPARATION;
 
+	bme280_get_sensor_data(BME280_ALL, &bmp_data1, &bmp280_1);
+	first_pres = bmp_data1.pressure;
+
 
 	uint32_t packet_wait_deadline = 0;
 	const uint32_t packet_wait_period = 5;
 	while(1)
 	{
-
+		timecyc = HAL_GetTick();
 		bme280_get_sensor_data(BME280_ALL, &bmp_data1, &bmp280_1);
 		packet3.press1BMP280 = bmp_data1.pressure;
 		packet3.hum1_bmp280 = bmp_data1.humidity*10;
@@ -385,7 +398,7 @@ void appmain()
 		packet3.press2BMP280 = bmp_data2.pressure;
 		packet3.temp2_bmp280 = bmp_data2.temperature * 100;
 
-		float altitude = 44330.0 *(1 - pow((float)bmp_data1.pressure/first_pres, (1.0/5.255)));
+		float altitude = 44330.0*(1 - pow((float)bmp_data1.pressure/first_pres, (1.0/5.255)));
 		packet3.alt = altitude;
 
 
@@ -459,7 +472,7 @@ void appmain()
 			result_packet = f_write(&packet_file, &packet3, sizeof(packet_3_t), &byte_count);
 			result_packet = f_sync(&packet_file);
 		}
-
+		timecyc2 = HAL_GetTick();
 		packet1.checksum_knpn = checksum_knpnD((uint8_t *) &packet1, sizeof(packet_1_t) - 2 - 4);
 		packet2.checksum_knpn = checksum_knpnD((uint8_t *) &packet2, sizeof(packet_2_t) - 2 - 8);
 		packet3.checksum_knpn = checksum_knpnD((uint8_t *) &packet3, sizeof(packet_3_t) - 2 - 4);
@@ -587,7 +600,6 @@ void appmain()
 					Glider_Angle(180);
 					state = FLIGHT;
 					timeOJ = HAL_GetTick();
-					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
 
 				}
 				break;
@@ -597,16 +609,14 @@ void appmain()
 
 				if (timeOJ + 1000 < HAL_GetTick())
 				{
-
 					state = DESCEND_SAS_MODE;
 				}
-
 				break;
 			}
 
 			case DESCEND_SAS_MODE:
 			{
-				if (altitude < 3)
+				if (altitude < 5)
 				{
 					timeOJ = HAL_GetTick();
 					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
@@ -620,7 +630,7 @@ void appmain()
 			{
 				if (timeOJ + 1000 < HAL_GetTick())
 				{
-					HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
+					HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET);
 				}
 
 				if (timeOJ + 2000 < HAL_GetTick())
