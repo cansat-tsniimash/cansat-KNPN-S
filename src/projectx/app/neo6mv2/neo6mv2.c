@@ -89,7 +89,7 @@ void neo6mv2_pushbyte(uint8_t byte){
 //char TEST_BUFF[200] = "$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47";
 
 uint8_t neo6mv2_ParseLine(char* line){
-	char buf[6] = "GPGGA";
+	char buf[6] = "GNGGA";
 	for (int i = 0; i < 5; i++)
 		if (line[i + 1] != buf[i])
 			return 0;

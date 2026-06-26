@@ -56,40 +56,34 @@ class DataManager(QObject):
         self.udp.connect(("192.168.0.203", 20003))
         self.udp.sendto("h".encode('utf-8'), ("192.168.0.203", 20003))
         num = 0
+        data_raw = b''
         while True:
             self.udp.sendto("h".encode('utf-8'), ("192.168.0.203", 20003))
-
-            data = self.udp.recv(55)
-            datada1 = self.udp.recv(55)
-            datada2 = self.udp.recv(55)
-            datada3 = self.udp.recv(55)
-            flug_cond = struct.unpack("B", data[:1])[0]
+            data_raw += self.udp.recv(55)
+            flug_cond = struct.unpack("B", data_raw[:1])[0]
             if flug_cond == 0xAA:
-                data = struct.unpack("<B2HI9hIh2H3fBHBH", data[:55])
+                data = struct.unpack("<B2HI9hIh2H3fBHBH", data_raw[:55])
+                data_raw = data_raw[55:]
                 self.MA.emit(data)
 
-
-
             elif flug_cond == 0xBB:
-                datada1 = struct.unpack("<BHI9hBH", datada1[:28])
+                datada1 = struct.unpack("<BHI9hBH", data_raw[:28])
+                data_raw = data_raw[28:]
                 self.DA0.emit(datada1)
 
-
             elif flug_cond == 0xCC:
-                datada2 = struct.unpack("<BHI3fB2H", datada2[:24])
+                datada2 = struct.unpack("<BHI3fB2H", data_raw[:24])
+                data_raw = data_raw[24:]
                 self.DA1.emit(datada2)
 
             elif flug_cond == 0xDD:
-                datada3 = struct.unpack("<BH3I2h3HBH", datada3[:28])
+                datada3 = struct.unpack("<BH3I2h3HBH", data_raw[:28])
+                data_raw = data_raw[28:]
                 self.DA2.emit(datada3)
 
             else:
                 print ("!")
-                data = data[1:]
-                datada1 = datada1[1:]
-                datada2 = datada2[1:]
-                datada3 = datada3[1:]
-
+                data_raw = data_raw[1:]
 
 
 
@@ -237,14 +231,14 @@ class zemla(QMainWindow):
         path = os.path.join(os.path.dirname(__file__), "form.ui")
         ui_file = QFile(path)
         ui_file.open(QFile.ReadOnly)
-        self.ui = loader.load(ui_file, self)
+        self.ui = loader.load(ui_file)
         ui_file.close()
 
     def setdatapachet(self, data):
 
 
-        self.ui.packet.setItem(0 , 0 , QTableWidgetItem(str(data[0])))
-        self.ui.packet.setItem(1 , 0 , QTableWidgetItem(str(data[1])))
+        self.ui.packet.setItem(0 , 0 , QTableWidgetItem(str(data[20] & 0x1f)))
+        self.ui.packet.setItem(1 , 0 , QTableWidgetItem(str((data[20] >> 5))))
 
 
         self.plot_data_upload(self.graph_list[0], data[3], data[16])
@@ -295,7 +289,6 @@ class zemla(QMainWindow):
         self.plot_data_upload(self.graphda3_list[2], datada1[2], datada1[8])
 
     def setda3pachet(self, datada3):
-
 
         self.plot_data_upload(self.graphda2_list[0], datada3[2], datada3[9])
 

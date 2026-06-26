@@ -36,7 +36,43 @@
      </widget>
     </item>
     <item row="3" column="0">
-     <widget class="QTableWidget" name="packet"/>
+     <widget class="QTableWidget" name="packet">
+      <row>
+       <property name="text">
+        <string>Новая строка</string>
+       </property>
+      </row>
+      <row>
+       <property name="text">
+        <string>Новая строка</string>
+       </property>
+      </row>
+      <row>
+       <property name="text">
+        <string>Новая строка</string>
+       </property>
+      </row>
+      <row>
+       <property name="text">
+        <string>Новая строка</string>
+       </property>
+      </row>
+      <column>
+       <property name="text">
+        <string>Новый столбец</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>Новый столбец</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>Новый столбец</string>
+       </property>
+      </column>
+     </widget>
     </item>
     <item row="3" column="3">
      <widget class="PlotWidget" name="graph2" native="true"/>

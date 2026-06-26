@@ -242,7 +242,7 @@ void appmain(){
 
 		megalux(&hadc1, &result);
 
-		packet.photoresistor = result*1000;
+		packet.photoresistor = result;
 		foto = packet.photoresistor;
 
 
@@ -345,7 +345,7 @@ void appmain(){
 		packet.neo6mv2_latitude = gps_data.latitude;
 		packet.neo6mv2_longitude = gps_data.longitude;
 		packet.neo6mv2_height = gps_data.altitude;
-		packet.neo6mv2_fix = gps_data.fixQuality;
+		packet.neo6mv2_fix = (gps_data.fixQuality << 5) | (gps_data.cookie & 0x1F);
 
 		packet.state = state;
 
@@ -417,6 +417,7 @@ void appmain(){
 		  		if (timeOJ + 2000 < HAL_GetTick())
 		  		{
 		  			HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_11);
+		  			timeOJ = HAL_GetTick();
 		  		}
 		  		break;
 		  	}

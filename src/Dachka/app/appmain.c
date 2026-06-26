@@ -193,8 +193,6 @@ void appmain()
 	__HAL_UART_ENABLE_IT(&huart1, UART_IT_ERR);
 
 
-
-
 	HAL_Delay(200);
 	nrf24_lower_api_config_t nrf24;
 	nrf24_spi_pins_t pins;
@@ -368,18 +366,15 @@ void appmain()
 
 
 
-	Glider_Angle(180);
+
 
 	state = PREPARATION;
 
 
 	uint32_t packet_wait_deadline = 0;
-	const uint32_t packet_wait_period = 100;
+	const uint32_t packet_wait_period = 5;
 	while(1)
 	{
-
-
-
 
 		bme280_get_sensor_data(BME280_ALL, &bmp_data1, &bmp280_1);
 		packet3.press1BMP280 = bmp_data1.pressure;
@@ -397,7 +392,7 @@ void appmain()
 		HAL_ADC_Start(&hadc1);
 		HAL_ADC_Init(&hadc1);
 		photo = HAL_ADC_GetValue(&hadc1);
-		packet2.photoresistor = photo * 1000;
+		packet2.photoresistor = photo;
 
 
 
@@ -577,7 +572,7 @@ void appmain()
 
 			case BEFOR_UNDOCKING:
 			{
-				if (photo > first_foto * 0.8)
+				if (photo > 100)
 				{
 					state = ACCELERATION;
 					timeOJ = HAL_GetTick();
@@ -597,7 +592,6 @@ void appmain()
 				}
 				break;
 			}
-
 			case FLIGHT:
 			{
 
@@ -612,7 +606,7 @@ void appmain()
 
 			case DESCEND_SAS_MODE:
 			{
-				if (altitude < 150)
+				if (altitude < 3)
 				{
 					timeOJ = HAL_GetTick();
 					HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
@@ -632,6 +626,7 @@ void appmain()
 				if (timeOJ + 2000 < HAL_GetTick())
 				{
 					HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_9);
+					timeOJ = HAL_GetTick();
 				}
 				break;
 			}
